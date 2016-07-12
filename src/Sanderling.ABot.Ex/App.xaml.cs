@@ -1,6 +1,7 @@
 ﻿using Bib3;
 using System;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -21,7 +22,7 @@ namespace Sanderling.ABot.Exe
 
 		void TimerConstruct()
 		{
-			var	timer = new DispatcherTimer(TimeSpan.FromSeconds(1.0 / 10), DispatcherPriority.Normal, Timer_Tick, Dispatcher);
+			var timer = new DispatcherTimer(TimeSpan.FromSeconds(1.0 / 10), DispatcherPriority.Normal, Timer_Tick, Dispatcher);
 
 			timer.Start();
 		}
@@ -31,6 +32,8 @@ namespace Sanderling.ABot.Exe
 			InterfaceExchange();
 
 			UIPresent();
+
+			Task.Run(() => BotProgress());
 		}
 
 		private void Application_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

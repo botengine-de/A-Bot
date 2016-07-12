@@ -30,6 +30,24 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Bib3">
+      <HintPath>..\..\lib\Bib3.dll</HintPath>
+    </Reference>
+    <Reference Include="Bib3.RefNezDif">
+      <HintPath>..\..\lib\Bib3.RefNezDif.dll</HintPath>
+    </Reference>
+    <Reference Include="BotEngine.Common">
+      <HintPath>..\..\lib\BotEngine.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="BotEngine.Interface">
+      <HintPath>..\..\lib\BotEngine.Interface.dll</HintPath>
+    </Reference>
+    <Reference Include="Sanderling">
+      <HintPath>..\..\lib\Sanderling.dll</HintPath>
+    </Reference>
+    <Reference Include="Sanderling.Interface">
+      <HintPath>..\..\lib\Sanderling.Interface.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -38,9 +56,18 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="WindowsInput, Version=1.0.4.0, Culture=neutral, PublicKeyToken=9b287f7dc5073cad, processorArchitecture=MSIL">
+      <HintPath>..\packages\InputSimulator.1.0.4.0\lib\net20\WindowsInput.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Bot\Bot.cs" />
+    <Compile Include="Bot\BotStepInput.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
