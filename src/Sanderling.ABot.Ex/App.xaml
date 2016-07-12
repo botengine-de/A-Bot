@@ -4,6 +4,6 @@
              xmlns:local="clr-namespace:Sanderling.ABot.Exe"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <ResourceDictionary Source="pack://application:,,,/ABot;component/resource.xaml"></ResourceDictionary>
     </Application.Resources>
 </Application>
