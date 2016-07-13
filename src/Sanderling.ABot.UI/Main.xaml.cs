@@ -11,6 +11,8 @@ namespace Sanderling.ABot.UI
 
 		public void BotMotionEnable() => ToggleButtonMotionEnable?.RightButtonDown();
 
+		public bool IsBotMotionEnabled => ToggleButtonMotionEnable?.ButtonRecz?.IsChecked ?? false;
+
 		public void ConfigFromModelToView(ExeConfig config) =>
 			Interface.LicenseView?.LicenseClientConfigViewModel?.PropagateFromClrMemberToDependencyProperty(config?.LicenseClient?.CompletedWithDefault());
 

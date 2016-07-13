@@ -52,7 +52,9 @@ namespace Sanderling.ABot.Exe
 
 			UIPresent();
 
-			Task.Run(() => BotProgress());
+			var motionEnable = MainControl?.IsBotMotionEnabled ?? false;
+
+			Task.Run(() => BotProgress(motionEnable));
 		}
 
 		private void Application_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
