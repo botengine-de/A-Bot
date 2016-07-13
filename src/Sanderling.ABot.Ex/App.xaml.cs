@@ -1,5 +1,6 @@
 ﻿using Bib3;
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -15,9 +16,27 @@ namespace Sanderling.ABot.Exe
 
 		public App()
 		{
+			AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+
 			SensorServerDispatcher.CyclicExchangeStart();
 
 			TimerConstruct();
+		}
+
+		private System.Reflection.Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+		{
+			var matchFullName =
+				AppDomain.CurrentDomain.GetAssemblies()
+				?.FirstOrDefault(candidate => string.Equals(candidate.GetName().FullName, args?.Name));
+
+			if (null != matchFullName)
+				return matchFullName;
+
+			var matchName =
+				AppDomain.CurrentDomain.GetAssemblies()
+				?.FirstOrDefault(candidate => string.Equals(candidate.GetName().Name, args?.Name));
+
+			return matchName;
 		}
 
 		void TimerConstruct()
