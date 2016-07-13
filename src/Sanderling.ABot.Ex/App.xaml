@@ -5,6 +5,6 @@
              StartupUri="MainWindow.xaml"
              DispatcherUnhandledException="Application_DispatcherUnhandledException">
     <Application.Resources>
-        <ResourceDictionary Source="pack://application:,,,/ABot;component/resource.xaml"></ResourceDictionary>
+        <ResourceDictionary Source="pack://application:,,,/Sanderling.ABot.Exe;component/resource.xaml"></ResourceDictionary>
     </Application.Resources>
 </Application>
