@@ -122,6 +122,12 @@ namespace Sanderling.ABot.Bot
 		{
 			var memoryMeasurement = memoryMeasurementAtTime?.Value;
 
+			var currentManeuverType = memoryMeasurement?.ShipUi?.Indication?.ManeuverType;
+
+			if (ShipManeuverTypeEnum.Warp == currentManeuverType ||
+				ShipManeuverTypeEnum.Jump == currentManeuverType)
+				yield break;
+
 			var listOverviewEntryToAttack =
 				memoryMeasurement?.WindowOverview?.FirstOrDefault()?.ListView?.Entry?.Where(entry => entry?.MainIcon?.Color?.IsRed() ?? false)
 				?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
