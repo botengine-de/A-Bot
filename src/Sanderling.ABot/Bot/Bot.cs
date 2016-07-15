@@ -17,7 +17,21 @@ namespace Sanderling.ABot.Bot
 
 		int motionId;
 
+		int stepIndex;
+
 		readonly Accumulator.MemoryMeasurementAccumulator MemoryMeasurementAccu = new Accumulator.MemoryMeasurementAccumulator();
+
+		IDictionary<Int64, int> MouseClickLastStepIndexFromUIElementId = new Dictionary<Int64, int>();
+
+		Int64? MouseClickLastAgeStepCountFromUIElement(Interface.MemoryStruct.IUIElement uiElement)
+		{
+			if (null == uiElement)
+				return null;
+
+			var interactionLastStepIndex = MouseClickLastStepIndexFromUIElementId?.TryGetValueNullable(uiElement.Id);
+
+			return stepIndex - interactionLastStepIndex;
+		}
 
 		public BotStepResult Step(BotStepInput input)
 		{
@@ -55,10 +69,22 @@ namespace Sanderling.ABot.Bot
 			}
 			finally
 			{
+				var setMotionMOuseWaypointUIElement =
+					listMotion
+					?.Select(motion => motion?.MotionParam)
+					?.Where(motionParam => 0 < motionParam?.MouseButton?.Count())
+					?.Select(motionParam => motionParam?.MouseListWaypoint)
+					?.ConcatNullable()?.Select(mouseWaypoint => mouseWaypoint?.UIElement)?.WhereNotDefault();
+
+				foreach (var mouseWaypointUIElement in setMotionMOuseWaypointUIElement.EmptyIfNull())
+					MouseClickLastStepIndexFromUIElementId[mouseWaypointUIElement.Id] = stepIndex;
+
 				stepLastResult = stepResult = new BotStepResult
 				{
 					ListMotion = listMotion?.ToArrayIfNotEmpty(),
 				};
+
+				++stepIndex;
 			}
 
 			return stepResult;
@@ -70,7 +96,7 @@ namespace Sanderling.ABot.Bot
 				MemoryMeasurementAccu?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsHardener ?? false);
 
 			var moduleTurnOn =
-				setModuleShouldBeTurnedOn?.FirstOrDefault(module => !(module?.RampActive ?? false));
+				setModuleShouldBeTurnedOn?.FirstOrDefault(module => !(module?.RampActive ?? false) && !(MouseClickLastAgeStepCountFromUIElement(module) <= 1));
 
 			yield return new BotTask { Motion = moduleTurnOn?.MouseClick(MouseButtonIdEnum.Left) };
 
