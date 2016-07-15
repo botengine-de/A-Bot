@@ -48,6 +48,8 @@ namespace Sanderling.ABot.Exe
 
 		void Timer_Tick(object sender, object e)
 		{
+			Window?.ProcessInput();
+
 			InterfaceExchange();
 
 			UIPresent();

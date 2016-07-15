@@ -13,6 +13,11 @@ namespace Sanderling.ABot.Exe
 
 		private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
 		{
+			ProcessInput();
+		}
+
+		public void ProcessInput()
+		{
 			if (App.SetKeyBotMotionDisable?.Any(setKey => setKey?.All(key => Keyboard.IsKeyDown(key)) ?? false) ?? false)
 				Main?.BotMotionDisable();
 		}
