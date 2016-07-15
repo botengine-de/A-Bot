@@ -5,6 +5,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 using Sanderling.Motor;
+using BotEngine.Motor;
 
 namespace Sanderling.ABot.Bot
 {
@@ -65,6 +66,14 @@ namespace Sanderling.ABot.Bot
 
 		IEnumerable<IBotTask> SequenceRootTask()
 		{
+			var setModuleShouldBeTurnedOn =
+				MemoryMeasurementAccu?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsHardener ?? false);
+
+			var moduleTurnOn =
+				setModuleShouldBeTurnedOn?.FirstOrDefault(module => !(module?.RampActive ?? false));
+
+			yield return new BotTask { Motion = moduleTurnOn?.MouseClick(MouseButtonIdEnum.Left) };
+
 			var moduleUnknown = MemoryMeasurementAccu?.ShipUiModule?.FirstOrDefault(module => null == module?.TooltipLast?.Value);
 
 			yield return new BotTask { Motion = moduleUnknown?.MouseMove() };
