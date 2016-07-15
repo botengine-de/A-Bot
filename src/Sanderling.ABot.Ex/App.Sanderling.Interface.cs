@@ -29,17 +29,17 @@ namespace Sanderling.ABot.Exe
 
 		readonly Bib3.RateLimit.IRateLimitStateInt MemoryMeasurementRequestRateLimit = new Bib3.RateLimit.RateLimitStateIntSingle();
 
-		Int64? RequestedMeasurementTime => MemoryMeasurementLast?.Begin + 4000;
+		Int64? MeasurementRequestTime => MemoryMeasurementLast?.Begin + 4000;
 
 		void InterfaceExchange()
 		{
-			var EveOnlineClientProcessId = this.EveOnlineClientProcessId;
+			var eveOnlineClientProcessId = EveOnlineClientProcessId;
 
-			var RequestedMeasurementTime = this.RequestedMeasurementTime ?? 0;
+			var measurementRequestTime = MeasurementRequestTime ?? 0;
 
-			if (EveOnlineClientProcessId.HasValue && RequestedMeasurementTime <= GetTimeStopwatch())
+			if (eveOnlineClientProcessId.HasValue && measurementRequestTime <= GetTimeStopwatch())
 				if (MemoryMeasurementRequestRateLimit.AttemptPass(GetTimeStopwatch(), 700))
-					Task.Run(() => MeasurementMemoryTake(EveOnlineClientProcessId.Value, RequestedMeasurementTime));
+					Task.Run(() => MeasurementMemoryTake(eveOnlineClientProcessId.Value, measurementRequestTime));
 		}
 
 		void MeasurementMemoryTake(int processId, Int64 measurementBeginTimeMinMilli)
