@@ -5,7 +5,6 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 using Sanderling.Motor;
-using BotEngine.Motor;
 using Sanderling.ABot.Bot.Task;
 using BotEngine.Common;
 
@@ -21,7 +20,7 @@ namespace Sanderling.ABot.Bot
 
 		int stepIndex;
 
-		FromProcessMeasurement<IMemoryMeasurement> memoryMeasurementAtTime;
+		public FromProcessMeasurement<IMemoryMeasurement> MemoryMeasurementAtTime { private set; get; }
 
 		readonly Accumulator.MemoryMeasurementAccumulator MemoryMeasurementAccu = new Accumulator.MemoryMeasurementAccumulator();
 
@@ -52,11 +51,9 @@ namespace Sanderling.ABot.Bot
 
 			try
 			{
-				memoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
+				MemoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
 
-				var memoryMeasurement = memoryMeasurementAtTime?.Value;
-
-				MemoryMeasurementAccu.Accumulate(memoryMeasurementAtTime);
+				MemoryMeasurementAccu.Accumulate(MemoryMeasurementAtTime);
 
 				var sequenceTaskPath =
 					((IBotTask)new BotTask { Component = SequenceRootTask() })?.EnumeratePathToNodeFromTreeDFirst(node => node?.Component)?.Where(path => null != path?.LastOrDefault());
@@ -120,7 +117,7 @@ namespace Sanderling.ABot.Bot
 
 		IEnumerable<IBotTask> CombatSequenceTask()
 		{
-			var memoryMeasurement = memoryMeasurementAtTime?.Value;
+			var memoryMeasurement = MemoryMeasurementAtTime?.Value;
 
 			var currentManeuverType = memoryMeasurement?.ShipUi?.Indication?.ManeuverType;
 
@@ -145,6 +142,8 @@ namespace Sanderling.ABot.Bot
 			if (null != targetSelected)
 				if (shouldAttackTarget)
 					yield return this.EnsureIsActive(setModuleWeapon);
+				else
+					yield return new MenuEntryInMenuRootTask { Bot = this, MenuEntryRegexPattern = "unlock", RootUIElement = targetSelected };
 
 			var overviewEntryLockTarget =
 				listOverviewEntryToAttack?.FirstOrDefault(entry => !((entry?.MeTargeted ?? false) || (entry?.MeTargeting ?? false)));
@@ -154,17 +153,16 @@ namespace Sanderling.ABot.Bot
 
 			var menu = memoryMeasurement?.Menu?.FirstOrDefault();
 
-			var menuEntryLockTarget =
-				menu?.Entry?.FirstOrDefault(menuEntry => menuEntry?.Text?.RegexMatchSuccessIgnoreCase(@"lock\s*target") ?? false);
-
 			var menuIsOpenedForOverviewEntry =
 				MouseClickLastAgeStepCountFromUIElement(overviewEntryLockTarget) <= 1 &&
 				(menu?.Entry?.Any(menuEntry => menuEntry?.Text?.RegexMatchSuccessIgnoreCase(@"remove.*overview") ?? false) ?? false);
 
-			if (menuIsOpenedForOverviewEntry && null != menuEntryLockTarget)
-				yield return new BotTask { Motion = menuEntryLockTarget.MouseClick(MouseButtonIdEnum.Left) };
-			else
-				yield return new BotTask { Motion = overviewEntryLockTarget.MouseClick(MouseButtonIdEnum.Right) };
+			yield return new MenuEntryInMenuRootTask
+			{
+				Bot = this,
+				RootUIElement = overviewEntryLockTarget,
+				MenuEntryRegexPattern = @"^lock\s*target",
+			};
 		}
 	}
 }
