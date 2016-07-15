@@ -3,6 +3,7 @@ using Bib3.Synchronization;
 using BotEngine.Interface;
 using Sanderling.Interface.MemoryStruct;
 using Sanderling.Motor;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -16,7 +17,21 @@ namespace Sanderling.ABot.Exe
 
 		const int FromMotionToMeasurementDelayMilli = 300;
 
-		Bot.MotionResult[] BotStepLastMotionResult;
+		const int MemoryMeasurementDistanceMaxMilli = 3000;
+
+		PropertyGenTimespanInt64<Bot.MotionResult[]> BotStepLastMotionResult;
+
+		Int64? MeasurementRequestTime()
+		{
+			var memoryMeasurementLast = MemoryMeasurementLast;
+
+			var botStepLastMotionResult = BotStepLastMotionResult;
+
+			if (memoryMeasurementLast?.Begin < botStepLastMotionResult?.End && 0 < botStepLastMotionResult?.Value?.Length)
+				return botStepLastMotionResult?.End + FromMotionToMeasurementDelayMilli;
+
+			return memoryMeasurementLast?.Begin + MemoryMeasurementDistanceMaxMilli;
+		}
 
 		void BotProgress(bool motionEnable)
 		{
@@ -36,7 +51,7 @@ namespace Sanderling.ABot.Exe
 				{
 					TimeMilli = time.Value,
 					FromProcessMemoryMeasurement = memoryMeasurementLast,
-					StepLastMotionResult = BotStepLastMotionResult,
+					StepLastMotionResult = BotStepLastMotionResult?.Value,
 				});
 
 				if (motionEnable)
@@ -58,6 +73,8 @@ namespace Sanderling.ABot.Exe
 			if (null == process)
 				return;
 
+			var startTime = GetTimeStopwatch();
+
 			var motor = new WindowMotor(process.MainWindowHandle);
 
 			var listMotionResult = new List<Bot.MotionResult>();
@@ -73,7 +90,7 @@ namespace Sanderling.ABot.Exe
 				});
 			}
 
-			BotStepLastMotionResult = listMotionResult.ToArray();
+			BotStepLastMotionResult = new PropertyGenTimespanInt64<Bot.MotionResult[]>(listMotionResult.ToArray(), startTime, GetTimeStopwatch());
 
 			Thread.Sleep(FromMotionToMeasurementDelayMilli);
 		}
