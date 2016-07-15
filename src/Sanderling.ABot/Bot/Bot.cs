@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System;
 using Sanderling.Motor;
 using BotEngine.Motor;
+using Sanderling.ABot.Bot.Task;
+using BotEngine.Common;
 
 namespace Sanderling.ABot.Bot
 {
@@ -19,11 +21,13 @@ namespace Sanderling.ABot.Bot
 
 		int stepIndex;
 
+		FromProcessMeasurement<IMemoryMeasurement> memoryMeasurementAtTime;
+
 		readonly Accumulator.MemoryMeasurementAccumulator MemoryMeasurementAccu = new Accumulator.MemoryMeasurementAccumulator();
 
 		IDictionary<Int64, int> MouseClickLastStepIndexFromUIElementId = new Dictionary<Int64, int>();
 
-		Int64? MouseClickLastAgeStepCountFromUIElement(Interface.MemoryStruct.IUIElement uiElement)
+		public Int64? MouseClickLastAgeStepCountFromUIElement(Interface.MemoryStruct.IUIElement uiElement)
 		{
 			if (null == uiElement)
 				return null;
@@ -49,16 +53,16 @@ namespace Sanderling.ABot.Bot
 					MotionParam = motionParam,
 				}));
 
-				var memoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
+				memoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
 
 				var memoryMeasurement = memoryMeasurementAtTime?.Value;
 
 				MemoryMeasurementAccu.Accumulate(memoryMeasurementAtTime);
 
 				var sequenceTask =
-					((IBotTask)new BotTask { Component = SequenceRootTask() })?.EnumerateNodeFromTreeDFirst(node => node?.Component);
+					((IBotTask)new BotTask { Component = SequenceRootTask() })?.EnumerateNodeFromTreeDFirst(node => node?.Component)?.WhereNotDefault();
 
-				var sequenceTaskLeaf = sequenceTask?.Where(task => null != task.Motion);
+				var sequenceTaskLeaf = sequenceTask?.Where(task => null != task?.Motion);
 
 				var taskNext = sequenceTaskLeaf?.FirstOrDefault();
 
@@ -92,17 +96,56 @@ namespace Sanderling.ABot.Bot
 
 		IEnumerable<IBotTask> SequenceRootTask()
 		{
-			var setModuleShouldBeTurnedOn =
-				MemoryMeasurementAccu?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsHardener ?? false);
-
-			var moduleTurnOn =
-				setModuleShouldBeTurnedOn?.FirstOrDefault(module => !(module?.RampActive ?? false) && !(MouseClickLastAgeStepCountFromUIElement(module) <= 1));
-
-			yield return new BotTask { Motion = moduleTurnOn?.MouseClick(MouseButtonIdEnum.Left) };
+			yield return this.EnsureActivated(MemoryMeasurementAccu?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsHardener ?? false));
 
 			var moduleUnknown = MemoryMeasurementAccu?.ShipUiModule?.FirstOrDefault(module => null == module?.TooltipLast?.Value);
 
 			yield return new BotTask { Motion = moduleUnknown?.MouseMove() };
+
+			yield return new BotTask { Component = CombatSequenceTask() };
+		}
+
+		IEnumerable<IBotTask> CombatSequenceTask()
+		{
+			var memoryMeasurement = memoryMeasurementAtTime?.Value;
+
+			var listOverviewEntryToAttack =
+				memoryMeasurement?.WindowOverview?.FirstOrDefault()?.ListView?.Entry?.Where(entry => entry?.MainIcon?.Color?.IsRed() ?? false)
+				?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
+				?.ToArray();
+
+			var targetSelected =
+				memoryMeasurement?.Target?.FirstOrDefault(target => target?.IsSelected ?? false);
+
+			var shouldAttackTarget =
+				listOverviewEntryToAttack?.Any(entry => entry?.MeActiveTarget ?? false) ?? false;
+
+			var setModuleWeapon =
+				MemoryMeasurementAccu?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsWeapon ?? false);
+
+			if (null != targetSelected)
+				if (shouldAttackTarget)
+					yield return this.EnsureActivated(setModuleWeapon);
+
+			var overviewEntryLockTarget =
+				listOverviewEntryToAttack?.FirstOrDefault(entry => !((entry?.MeTargeted ?? false) || (entry?.MeTargeting ?? false)));
+
+			if (null == overviewEntryLockTarget)
+				yield break;
+
+			var menu = memoryMeasurement?.Menu?.FirstOrDefault();
+
+			var menuEntryLockTarget =
+				menu?.Entry?.FirstOrDefault(menuEntry => menuEntry?.Text?.RegexMatchSuccessIgnoreCase(@"lock\s*target") ?? false);
+
+			var menuIsOpenedForOverviewEntry =
+				MouseClickLastAgeStepCountFromUIElement(overviewEntryLockTarget) <= 1 &&
+				(menu?.Entry?.Any(menuEntry => menuEntry?.Text?.RegexMatchSuccessIgnoreCase(@"remove.*overview") ?? false) ?? false);
+
+			if (menuIsOpenedForOverviewEntry && null != menuEntryLockTarget)
+				yield return new BotTask { Motion = menuEntryLockTarget.MouseClick(MouseButtonIdEnum.Left) };
+			else
+				yield return new BotTask { Motion = overviewEntryLockTarget.MouseClick(MouseButtonIdEnum.Right) };
 		}
 	}
 }
