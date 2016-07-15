@@ -40,10 +40,17 @@ namespace Sanderling.ABot.Bot
 
 				MemoryMeasurementAccu.Accumulate(memoryMeasurementAtTime);
 
-				var moduleUnknown = MemoryMeasurementAccu?.ShipUiModule?.FirstOrDefault(module => null == module?.TooltipLast?.Value);
+				var sequenceTask =
+					((IBotTask)new BotTask { Component = SequenceRootTask() })?.EnumerateNodeFromTreeDFirst(node => node?.Component);
 
-				if (null != moduleUnknown)
-					addMotion(moduleUnknown.MouseMove());
+				var sequenceTaskLeaf = sequenceTask?.Where(task => null != task.Motion);
+
+				var taskNext = sequenceTaskLeaf?.FirstOrDefault();
+
+				var motion = taskNext?.Motion;
+
+				if (null != motion)
+					addMotion(motion);
 			}
 			finally
 			{
@@ -54,6 +61,13 @@ namespace Sanderling.ABot.Bot
 			}
 
 			return stepResult;
+		}
+
+		IEnumerable<IBotTask> SequenceRootTask()
+		{
+			var moduleUnknown = MemoryMeasurementAccu?.ShipUiModule?.FirstOrDefault(module => null == module?.TooltipLast?.Value);
+
+			yield return new BotTask { Motion = moduleUnknown?.MouseMove() };
 		}
 	}
 }

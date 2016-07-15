@@ -65,6 +65,7 @@
     <Compile Include="Bot\Bot.cs" />
     <Compile Include="Bot\BotStepInput.cs" />
     <Compile Include="Bot\BotStepResult.cs" />
+    <Compile Include="Bot\BotTask.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
