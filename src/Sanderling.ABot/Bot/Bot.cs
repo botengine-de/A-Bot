@@ -25,7 +25,9 @@ namespace Sanderling.ABot.Bot
 
 		readonly Accumulator.MemoryMeasurementAccumulator MemoryMeasurementAccu = new Accumulator.MemoryMeasurementAccumulator();
 
-		IDictionary<Int64, int> MouseClickLastStepIndexFromUIElementId = new Dictionary<Int64, int>();
+		readonly IDictionary<Int64, int> MouseClickLastStepIndexFromUIElementId = new Dictionary<Int64, int>();
+
+		readonly IDictionary<Accumulation.IShipUiModule, int> ToggleLastStepIndexFromModule = new Dictionary<Accumulation.IShipUiModule, int>();
 
 		public Int64? MouseClickLastAgeStepCountFromUIElement(Interface.MemoryStruct.IUIElement uiElement)
 		{
@@ -37,42 +39,53 @@ namespace Sanderling.ABot.Bot
 			return stepIndex - interactionLastStepIndex;
 		}
 
+		public Int64? ToggleLastAgeStepCountFromModule(Accumulation.IShipUiModule module) =>
+			stepIndex - ToggleLastStepIndexFromModule?.TryGetValueNullable(module);
+
 		public BotStepResult Step(BotStepInput input)
 		{
 			StepLastInput = input;
 
-			var listMotion = new List<MotionRecommendation>();
-
 			BotStepResult stepResult = null;
+
+			var listTaskPath = new List<IBotTask[]>();
 
 			try
 			{
-				var addMotion = new Action<MotionParam>(motionParam => listMotion.Add(new MotionRecommendation
-				{
-					Id = ++motionId,
-					MotionParam = motionParam,
-				}));
-
 				memoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
 
 				var memoryMeasurement = memoryMeasurementAtTime?.Value;
 
 				MemoryMeasurementAccu.Accumulate(memoryMeasurementAtTime);
 
-				var sequenceTask =
-					((IBotTask)new BotTask { Component = SequenceRootTask() })?.EnumerateNodeFromTreeDFirst(node => node?.Component)?.WhereNotDefault();
+				var sequenceTaskPath =
+					((IBotTask)new BotTask { Component = SequenceRootTask() })?.EnumeratePathToNodeFromTreeDFirst(node => node?.Component)?.Where(path => null != path?.LastOrDefault());
 
-				var sequenceTaskLeaf = sequenceTask?.Where(task => null != task?.Motion);
+				var sequenceTaskPathWithMotion = sequenceTaskPath?.Where(task => null != task?.LastOrDefault()?.Motion);
 
-				var taskNext = sequenceTaskLeaf?.FirstOrDefault();
-
-				var motion = taskNext?.Motion;
-
-				if (null != motion)
-					addMotion(motion);
+				listTaskPath.Add(sequenceTaskPathWithMotion?.FirstOrDefault());
 			}
 			finally
 			{
+				var listMotion = new List<MotionRecommendation>();
+
+				foreach (var moduleToggle in listTaskPath.ConcatNullable().OfType<ModuleToggleTask>().Select(moduleToggleTask => moduleToggleTask?.module).WhereNotDefault())
+					ToggleLastStepIndexFromModule[moduleToggle] = stepIndex;
+
+				foreach (var taskPath in listTaskPath.EmptyIfNull())
+				{
+					var taskMotionParam = taskPath?.LastOrDefault()?.Motion;
+
+					if (null == taskMotionParam)
+						continue;
+
+					listMotion.Add(new MotionRecommendation
+					{
+						Id = motionId++,
+						MotionParam = taskMotionParam,
+					});
+				}
+
 				var setMotionMOuseWaypointUIElement =
 					listMotion
 					?.Select(motion => motion?.MotionParam)
@@ -96,7 +109,7 @@ namespace Sanderling.ABot.Bot
 
 		IEnumerable<IBotTask> SequenceRootTask()
 		{
-			yield return this.EnsureActivated(MemoryMeasurementAccu?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsHardener ?? false));
+			yield return this.EnsureIsActive(MemoryMeasurementAccu?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsHardener ?? false));
 
 			var moduleUnknown = MemoryMeasurementAccu?.ShipUiModule?.FirstOrDefault(module => null == module?.TooltipLast?.Value);
 
@@ -125,7 +138,7 @@ namespace Sanderling.ABot.Bot
 
 			if (null != targetSelected)
 				if (shouldAttackTarget)
-					yield return this.EnsureActivated(setModuleWeapon);
+					yield return this.EnsureIsActive(setModuleWeapon);
 
 			var overviewEntryLockTarget =
 				listOverviewEntryToAttack?.FirstOrDefault(entry => !((entry?.MeTargeted ?? false) || (entry?.MeTargeting ?? false)));

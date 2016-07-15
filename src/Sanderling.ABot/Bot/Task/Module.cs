@@ -8,22 +8,54 @@ namespace Sanderling.ABot.Bot.Task
 {
 	static public class ModuleTaskExtension
 	{
-		static public IBotTask EnsureActivated(
-			this Bot bot,
-			IShipUiModule module)
+		static public bool? IsActive(
+			this IShipUiModule module,
+			Bot bot)
 		{
-			if (module?.RampActive ?? false)
-				return null;
-
 			if (bot?.MouseClickLastAgeStepCountFromUIElement(module) <= 1)
 				return null;
 
-			return new BotTask { Motion = module?.MouseClick(MouseButtonIdEnum.Left) };
+			if (bot?.ToggleLastAgeStepCountFromModule(module) <= 1)
+				return null;
+
+			return module?.RampActive;
 		}
 
-		static public IBotTask EnsureActivated(
+		static public IBotTask EnsureIsActive(
+			this Bot bot,
+			IShipUiModule module)
+		{
+			if (module?.IsActive(bot) ?? true)
+				return null;
+
+			return new ModuleToggleTask { bot = bot, module = module };
+		}
+
+		static public IBotTask EnsureIsActive(
 			this Bot bot,
 			IEnumerable<IShipUiModule> setModule) =>
-			new BotTask { Component = setModule?.Select(module => bot?.EnsureActivated(module)) };
+			new BotTask { Component = setModule?.Select(module => bot?.EnsureIsActive(module)) };
+	}
+
+	public class ModuleToggleTask : IBotTask
+	{
+		public Bot bot;
+
+		public IShipUiModule module;
+
+		public IEnumerable<IBotTask> Component => null;
+
+		public MotionParam Motion
+		{
+			get
+			{
+				var toggleKey = module?.TooltipLast?.Value?.ToggleKey;
+
+				if (0 < toggleKey?.Length)
+					return toggleKey?.KeyboardPressCombined();
+
+				return module?.MouseClick(MouseButtonIdEnum.Left);
+			}
+		}
 	}
 }
