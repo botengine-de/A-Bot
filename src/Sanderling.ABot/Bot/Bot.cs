@@ -45,7 +45,7 @@ namespace Sanderling.ABot.Bot
 		{
 			StepLastInput = input;
 
-			BotStepResult stepResult = null;
+			Exception exception = null;
 
 			var listTaskPath = new List<IBotTask[]>();
 
@@ -62,44 +62,47 @@ namespace Sanderling.ABot.Bot
 
 				listTaskPath.Add(sequenceTaskPathWithMotion?.FirstOrDefault());
 			}
-			finally
+			catch (Exception e)
 			{
-				var listMotion = new List<MotionRecommendation>();
-
-				foreach (var moduleToggle in listTaskPath.ConcatNullable().OfType<ModuleToggleTask>().Select(moduleToggleTask => moduleToggleTask?.module).WhereNotDefault())
-					ToggleLastStepIndexFromModule[moduleToggle] = stepIndex;
-
-				foreach (var taskPath in listTaskPath.EmptyIfNull())
-				{
-					var taskMotionParam = taskPath?.LastOrDefault()?.Motion;
-
-					if (null == taskMotionParam)
-						continue;
-
-					listMotion.Add(new MotionRecommendation
-					{
-						Id = motionId++,
-						MotionParam = taskMotionParam,
-					});
-				}
-
-				var setMotionMOuseWaypointUIElement =
-					listMotion
-					?.Select(motion => motion?.MotionParam)
-					?.Where(motionParam => 0 < motionParam?.MouseButton?.Count())
-					?.Select(motionParam => motionParam?.MouseListWaypoint)
-					?.ConcatNullable()?.Select(mouseWaypoint => mouseWaypoint?.UIElement)?.WhereNotDefault();
-
-				foreach (var mouseWaypointUIElement in setMotionMOuseWaypointUIElement.EmptyIfNull())
-					MouseClickLastStepIndexFromUIElementId[mouseWaypointUIElement.Id] = stepIndex;
-
-				stepLastResult = stepResult = new BotStepResult
-				{
-					ListMotion = listMotion?.ToArrayIfNotEmpty(),
-				};
-
-				++stepIndex;
+				exception = e;
 			}
+
+			var listMotion = new List<MotionRecommendation>();
+
+			foreach (var moduleToggle in listTaskPath.ConcatNullable().OfType<ModuleToggleTask>().Select(moduleToggleTask => moduleToggleTask?.module).WhereNotDefault())
+				ToggleLastStepIndexFromModule[moduleToggle] = stepIndex;
+
+			foreach (var taskPath in listTaskPath.EmptyIfNull())
+			{
+				var taskMotionParam = taskPath?.LastOrDefault()?.Motion;
+
+				if (null == taskMotionParam)
+					continue;
+
+				listMotion.Add(new MotionRecommendation
+				{
+					Id = motionId++,
+					MotionParam = taskMotionParam,
+				});
+			}
+
+			var setMotionMOuseWaypointUIElement =
+				listMotion
+				?.Select(motion => motion?.MotionParam)
+				?.Where(motionParam => 0 < motionParam?.MouseButton?.Count())
+				?.Select(motionParam => motionParam?.MouseListWaypoint)
+				?.ConcatNullable()?.Select(mouseWaypoint => mouseWaypoint?.UIElement)?.WhereNotDefault();
+
+			foreach (var mouseWaypointUIElement in setMotionMOuseWaypointUIElement.EmptyIfNull())
+				MouseClickLastStepIndexFromUIElementId[mouseWaypointUIElement.Id] = stepIndex;
+
+			var stepResult = stepLastResult = new BotStepResult
+			{
+				Exception = exception,
+				ListMotion = listMotion?.ToArrayIfNotEmpty(),
+			};
+
+			++stepIndex;
 
 			return stepResult;
 		}
