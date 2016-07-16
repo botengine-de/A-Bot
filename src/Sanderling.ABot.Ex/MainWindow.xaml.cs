@@ -6,6 +6,9 @@ namespace Sanderling.ABot.Exe
 {
 	public partial class MainWindow : Window
 	{
+		public string TitleComputed =>
+			"A-Bot v" + (TryFindResource("AppVersionId") ?? "");
+
 		public MainWindow()
 		{
 			InitializeComponent();

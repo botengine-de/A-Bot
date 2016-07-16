@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:Sanderling.ABot.Exe"
         xmlns:Sanderling.ABot.UI="clr-namespace:Sanderling.ABot.UI;assembly=Sanderling.ABot.UI"
         mc:Ignorable="d"
-        Title="A-Bot" Height="350" Width="525"
+        Title="{Binding RelativeSource={RelativeSource Self}, Path=TitleComputed, FallbackValue=A-Bot vXXXX}"
+        Height="350" Width="525"
         KeyDown="Window_KeyDown">
     <Grid>
         <Sanderling.ABot.UI:Main

@@ -7,6 +7,7 @@
         <ResourceDictionary Source="pack://application:,,,/Sanderling.ABot.UI;component/resource.xaml"></ResourceDictionary>
 
         <ResourceDictionary>
+            <system:String x:Key="AppVersionId">16.06.15</system:String>
         </ResourceDictionary>
     </ResourceDictionary.MergedDictionaries>
 </ResourceDictionary>
