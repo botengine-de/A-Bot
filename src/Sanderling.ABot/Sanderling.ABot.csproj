@@ -69,6 +69,7 @@
     <Compile Include="Bot\Task\Combat.cs" />
     <Compile Include="Bot\Task\Menu.cs" />
     <Compile Include="Bot\Task\Module.cs" />
+    <Compile Include="Parse\ParseExtension.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

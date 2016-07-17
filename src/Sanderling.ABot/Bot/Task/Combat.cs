@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Sanderling.Motor;
 using Sanderling.Parse;
+using System;
+using Sanderling.Interface.MemoryStruct;
+using Sanderling.ABot.Parse;
+using Bib3;
 
 namespace Sanderling.ABot.Bot.Task
 {
@@ -48,15 +52,65 @@ namespace Sanderling.ABot.Bot.Task
 				var overviewEntryLockTarget =
 					listOverviewEntryToAttack?.FirstOrDefault(entry => !((entry?.MeTargeted ?? false) || (entry?.MeTargeting ?? false)));
 
-				if (null == overviewEntryLockTarget)
-					yield break;
+				if (null != overviewEntryLockTarget)
+					yield return new MenuEntryInMenuRootTask
+					{
+						Bot = bot,
+						RootUIElement = overviewEntryLockTarget,
+						MenuEntryRegexPattern = @"^lock\s*target",
+					};
 
-				yield return new MenuEntryInMenuRootTask
+				var droneListView = memoryMeasurement?.WindowDroneView?.FirstOrDefault()?.ListView;
+
+				var droneGroupWithNameMatchingPattern = new Func<string, DroneViewEntryGroup>(namePattern =>
+					droneListView?.Entry?.OfType<DroneViewEntryGroup>()?.FirstOrDefault(group => group?.LabelTextLargest()?.Text?.RegexMatchSuccessIgnoreCase(namePattern) ?? false));
+
+				var droneGroupInBay = droneGroupWithNameMatchingPattern("bay");
+				var droneGroupInLocalSpace = droneGroupWithNameMatchingPattern("local space");
+
+				var droneInBayCount = droneGroupInBay?.Caption?.Text?.CountFromDroneGroupCaption();
+				var droneInLocalSpaceCount = droneGroupInLocalSpace?.Caption?.Text?.CountFromDroneGroupCaption();
+
+				//	assuming that local space is bottommost group.
+				var setDroneInLocalSpace =
+					droneListView?.Entry?.OfType<DroneViewEntryItem>()
+					?.Where(drone => droneGroupInLocalSpace?.RegionCenter()?.B < drone?.RegionCenter()?.B)
+					?.ToArray();
+
+				var droneInLocalSpaceSetStatus =
+					setDroneInLocalSpace?.Select(drone => drone?.LabelText?.Select(label => label?.Text?.StatusStringFromDroneEntryText()))?.ConcatNullable()?.WhereNotDefault()?.Distinct()?.ToArray();
+
+				var droneInLocalSpaceIdle =
+					droneInLocalSpaceSetStatus?.Any(droneStatus => droneStatus.RegexMatchSuccessIgnoreCase("idle")) ?? false;
+
+				if (shouldAttackTarget)
 				{
-					Bot = bot,
-					RootUIElement = overviewEntryLockTarget,
-					MenuEntryRegexPattern = @"^lock\s*target",
-				};
+					if (0 < droneInBayCount && droneInLocalSpaceCount < 5)
+						yield return new MenuEntryInMenuRootTask
+						{
+							Bot = bot,
+							RootUIElement = droneGroupInBay,
+							MenuEntryRegexPattern = @"launch",
+						};
+
+					if (droneInLocalSpaceIdle)
+						yield return new MenuEntryInMenuRootTask
+						{
+							Bot = bot,
+							RootUIElement = droneGroupInLocalSpace,
+							MenuEntryRegexPattern = @"engage",
+						};
+				}
+				else
+				{
+					if (0 < droneInLocalSpaceCount)
+						yield return new MenuEntryInMenuRootTask
+						{
+							Bot = bot,
+							RootUIElement = droneGroupInLocalSpace,
+							MenuEntryRegexPattern = @"return.*bay",
+						};
+				}
 			}
 		}
 
