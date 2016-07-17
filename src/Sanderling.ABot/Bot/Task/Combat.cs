@@ -51,12 +51,6 @@ namespace Sanderling.ABot.Bot.Task
 				if (null == overviewEntryLockTarget)
 					yield break;
 
-				var menu = memoryMeasurement?.Menu?.FirstOrDefault();
-
-				var menuIsOpenedForOverviewEntry =
-					bot?.MouseClickLastAgeStepCountFromUIElement(overviewEntryLockTarget) <= 1 &&
-					(menu?.Entry?.Any(menuEntry => menuEntry?.Text?.RegexMatchSuccessIgnoreCase(@"remove.*overview") ?? false) ?? false);
-
 				yield return new MenuEntryInMenuRootTask
 				{
 					Bot = bot,
