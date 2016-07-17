@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System;
 using Sanderling.Motor;
 using Sanderling.ABot.Bot.Task;
-using BotEngine.Common;
 
 namespace Sanderling.ABot.Bot
 {
@@ -22,7 +21,7 @@ namespace Sanderling.ABot.Bot
 
 		public FromProcessMeasurement<IMemoryMeasurement> MemoryMeasurementAtTime { private set; get; }
 
-		readonly Accumulator.MemoryMeasurementAccumulator MemoryMeasurementAccu = new Accumulator.MemoryMeasurementAccumulator();
+		readonly public Accumulator.MemoryMeasurementAccumulator MemoryMeasurementAccu = new Accumulator.MemoryMeasurementAccumulator();
 
 		readonly IDictionary<Int64, int> MouseClickLastStepIndexFromUIElementId = new Dictionary<Int64, int>();
 
@@ -115,57 +114,7 @@ namespace Sanderling.ABot.Bot
 
 			yield return new BotTask { Motion = moduleUnknown?.MouseMove() };
 
-			yield return new BotTask { Component = CombatSequenceTask() };
-		}
-
-		IEnumerable<IBotTask> CombatSequenceTask()
-		{
-			var memoryMeasurement = MemoryMeasurementAtTime?.Value;
-
-			var currentManeuverType = memoryMeasurement?.ShipUi?.Indication?.ManeuverType;
-
-			if (ShipManeuverTypeEnum.Warp == currentManeuverType ||
-				ShipManeuverTypeEnum.Jump == currentManeuverType)
-				yield break;
-
-			var listOverviewEntryToAttack =
-				memoryMeasurement?.WindowOverview?.FirstOrDefault()?.ListView?.Entry?.Where(entry => entry?.MainIcon?.Color?.IsRed() ?? false)
-				?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
-				?.ToArray();
-
-			var targetSelected =
-				memoryMeasurement?.Target?.FirstOrDefault(target => target?.IsSelected ?? false);
-
-			var shouldAttackTarget =
-				listOverviewEntryToAttack?.Any(entry => entry?.MeActiveTarget ?? false) ?? false;
-
-			var setModuleWeapon =
-				MemoryMeasurementAccu?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsWeapon ?? false);
-
-			if (null != targetSelected)
-				if (shouldAttackTarget)
-					yield return this.EnsureIsActive(setModuleWeapon);
-				else
-					yield return new MenuEntryInMenuRootTask { Bot = this, MenuEntryRegexPattern = "unlock", RootUIElement = targetSelected };
-
-			var overviewEntryLockTarget =
-				listOverviewEntryToAttack?.FirstOrDefault(entry => !((entry?.MeTargeted ?? false) || (entry?.MeTargeting ?? false)));
-
-			if (null == overviewEntryLockTarget)
-				yield break;
-
-			var menu = memoryMeasurement?.Menu?.FirstOrDefault();
-
-			var menuIsOpenedForOverviewEntry =
-				MouseClickLastAgeStepCountFromUIElement(overviewEntryLockTarget) <= 1 &&
-				(menu?.Entry?.Any(menuEntry => menuEntry?.Text?.RegexMatchSuccessIgnoreCase(@"remove.*overview") ?? false) ?? false);
-
-			yield return new MenuEntryInMenuRootTask
-			{
-				Bot = this,
-				RootUIElement = overviewEntryLockTarget,
-				MenuEntryRegexPattern = @"^lock\s*target",
-			};
+			yield return new CombatTask { bot = this };
 		}
 	}
 }
