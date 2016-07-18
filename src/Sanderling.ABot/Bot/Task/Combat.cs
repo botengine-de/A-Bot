@@ -12,6 +12,8 @@ namespace Sanderling.ABot.Bot.Task
 {
 	public class CombatTask : IBotTask
 	{
+		const int TargetCountMax = 4;
+
 		public Bot bot;
 
 		public bool Completed { private set; get; }
@@ -51,17 +53,6 @@ namespace Sanderling.ABot.Bot.Task
 						yield return bot.EnsureIsActive(setModuleWeapon);
 					else
 						yield return new MenuEntryInMenuRootTask { Bot = bot, MenuEntryRegexPattern = "unlock", RootUIElement = targetSelected };
-
-				var overviewEntryLockTarget =
-					listOverviewEntryToAttack?.FirstOrDefault(entry => !((entry?.MeTargeted ?? false) || (entry?.MeTargeting ?? false)));
-
-				if (null != overviewEntryLockTarget)
-					yield return new MenuEntryInMenuRootTask
-					{
-						Bot = bot,
-						RootUIElement = overviewEntryLockTarget,
-						MenuEntryRegexPattern = @"^lock\s*target",
-					};
 
 				var droneListView = memoryMeasurement?.WindowDroneView?.FirstOrDefault()?.ListView;
 
@@ -104,6 +95,17 @@ namespace Sanderling.ABot.Bot.Task
 							MenuEntryRegexPattern = @"engage",
 						};
 				}
+
+				var overviewEntryLockTarget =
+					listOverviewEntryToAttack?.FirstOrDefault(entry => !((entry?.MeTargeted ?? false) || (entry?.MeTargeting ?? false)));
+
+				if (null != overviewEntryLockTarget && !(TargetCountMax <= memoryMeasurement?.Target?.Length))
+					yield return new MenuEntryInMenuRootTask
+					{
+						Bot = bot,
+						RootUIElement = overviewEntryLockTarget,
+						MenuEntryRegexPattern = @"^lock\s*target",
+					};
 
 				if (!(0 < listOverviewEntryToAttack?.Length))
 					if (0 < droneInLocalSpaceCount)
