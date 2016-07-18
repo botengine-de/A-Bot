@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System;
 using Sanderling.Motor;
 using Sanderling.ABot.Bot.Task;
+using Sanderling.ABot.Bot.Memory;
 
 namespace Sanderling.ABot.Bot
 {
@@ -22,6 +23,8 @@ namespace Sanderling.ABot.Bot
 		public FromProcessMeasurement<IMemoryMeasurement> MemoryMeasurementAtTime { private set; get; }
 
 		readonly public Accumulator.MemoryMeasurementAccumulator MemoryMeasurementAccu = new Accumulator.MemoryMeasurementAccumulator();
+
+		readonly public OverviewMemory OverviewMemory = new OverviewMemory();
 
 		readonly IDictionary<Int64, int> MouseClickLastStepIndexFromUIElementId = new Dictionary<Int64, int>();
 
@@ -53,6 +56,8 @@ namespace Sanderling.ABot.Bot
 				MemoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
 
 				MemoryMeasurementAccu.Accumulate(MemoryMeasurementAtTime);
+
+				OverviewMemory.Aggregate(MemoryMeasurementAtTime);
 
 				var sequenceTaskPath =
 					((IBotTask)new BotTask { Component = SequenceRootTask() })?.EnumeratePathToNodeFromTreeDFirst(node => node?.Component)?.Where(path => null != path?.LastOrDefault());

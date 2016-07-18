@@ -31,7 +31,8 @@ namespace Sanderling.ABot.Bot.Task
 
 				var listOverviewEntryToAttack =
 					memoryMeasurement?.WindowOverview?.FirstOrDefault()?.ListView?.Entry?.Where(entry => entry?.MainIcon?.Color?.IsRed() ?? false)
-					?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
+					?.OrderBy(entry => bot.AttackPriorityIndex(entry))
+					?.ThenBy(entry => entry?.DistanceMax ?? int.MaxValue)
 					?.ToArray();
 
 				var targetSelected =
