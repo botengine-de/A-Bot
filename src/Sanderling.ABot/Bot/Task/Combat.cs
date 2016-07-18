@@ -14,7 +14,7 @@ namespace Sanderling.ABot.Bot.Task
 	{
 		public Bot bot;
 
-		public	bool Completed { private set; get; }
+		public bool Completed { private set; get; }
 
 		public IEnumerable<IBotTask> Component
 		{
@@ -104,8 +104,8 @@ namespace Sanderling.ABot.Bot.Task
 							MenuEntryRegexPattern = @"engage",
 						};
 				}
-				else
-				{
+
+				if (!(0 < listOverviewEntryToAttack?.Length))
 					if (0 < droneInLocalSpaceCount)
 						yield return new MenuEntryInMenuRootTask
 						{
@@ -115,7 +115,6 @@ namespace Sanderling.ABot.Bot.Task
 						};
 					else
 						Completed = true;
-				}
 			}
 		}
 
