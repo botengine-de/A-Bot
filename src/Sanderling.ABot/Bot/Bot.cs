@@ -119,9 +119,12 @@ namespace Sanderling.ABot.Bot
 
 			yield return new BotTask { Motion = moduleUnknown?.MouseMove() };
 
-			yield return new CombatTask { bot = this };
+			var combatTask = new CombatTask { bot = this };
 
-			yield return new AnomalyEnter { bot = this };
+			yield return combatTask;
+
+			if (combatTask.Completed)
+				yield return new AnomalyEnter { bot = this };
 		}
 	}
 }

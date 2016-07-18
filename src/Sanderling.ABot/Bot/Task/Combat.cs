@@ -14,6 +14,8 @@ namespace Sanderling.ABot.Bot.Task
 	{
 		public Bot bot;
 
+		public	bool Completed { private set; get; }
+
 		public IEnumerable<IBotTask> Component
 		{
 			get
@@ -111,6 +113,8 @@ namespace Sanderling.ABot.Bot.Task
 							RootUIElement = droneGroupInLocalSpace,
 							MenuEntryRegexPattern = @"return.*bay",
 						};
+					else
+						Completed = true;
 				}
 			}
 		}
