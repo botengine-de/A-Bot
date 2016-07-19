@@ -120,11 +120,18 @@ namespace Sanderling.ABot.Bot
 		{
 			yield return new EnableInfoPanelCurrentSystem { MemoryMeasurement = MemoryMeasurementAtTime?.Value };
 
+			var saveShipTask = new SaveShipTask { Bot = this };
+
+			yield return saveShipTask;
+
 			yield return this.EnsureIsActive(MemoryMeasurementAccu?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsHardener ?? false));
 
 			var moduleUnknown = MemoryMeasurementAccu?.ShipUiModule?.FirstOrDefault(module => null == module?.TooltipLast?.Value);
 
 			yield return new BotTask { Motion = moduleUnknown?.MouseMove() };
+
+			if (!saveShipTask.AllowRoam)
+				yield break;
 
 			var combatTask = new CombatTask { bot = this };
 

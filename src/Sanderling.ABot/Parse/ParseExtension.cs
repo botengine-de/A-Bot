@@ -1,6 +1,9 @@
 ﻿using Bib3;
+using Bib3.Geometrik;
 using BotEngine.Common;
+using MemoryStruct = Sanderling.Interface.MemoryStruct;
 using Sanderling.Parse;
+using System;
 using System.Linq;
 
 namespace Sanderling.ABot.Parse
@@ -22,5 +25,16 @@ namespace Sanderling.ABot.Parse
 			!(memoryMeasurement?.IsDocked ?? false) &&
 			!new[] { ShipManeuverTypeEnum.Warp, ShipManeuverTypeEnum.Jump, ShipManeuverTypeEnum.Docked }.Contains(
 				memoryMeasurement?.ShipUi?.Indication?.ManeuverType ?? ShipManeuverTypeEnum.None);
+
+		static public Int64 Width(this RectInt rect) => rect.Side0Length();
+		static public Int64 Height(this RectInt rect) => rect.Side1Length();
+
+		static public bool IsScrollable(this MemoryStruct.IScroll scroll) =>
+			scroll?.ScrollHandle?.Region.Height() < scroll?.ScrollHandleBound?.Region.Height() - 4;
+
+		static public bool IsNeutralOrEnemy(this MemoryStruct.IChatParticipantEntry participantEntry) =>
+			!(participantEntry?.FlagIcon?.Any(flagIcon =>
+				new[] { "good standing", "excellent standing", "Pilot is in your (fleet|corporation)", }
+				.Any(goodStandingText => flagIcon?.HintText?.RegexMatchSuccessIgnoreCase(goodStandingText) ?? false)) ?? false);
 	}
 }
