@@ -76,6 +76,7 @@
     <Compile Include="Bot\Task\Module.cs" />
     <Compile Include="Bot\Task\Retreat.cs" />
     <Compile Include="Bot\Task\SaveShip.cs" />
+    <Compile Include="Bot\Task\Undock.cs" />
     <Compile Include="Parse\ParseExtension.cs" />
     <Compile Include="Parse\ParseStatic.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
