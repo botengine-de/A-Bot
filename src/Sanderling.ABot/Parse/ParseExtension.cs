@@ -1,5 +1,7 @@
 ﻿using Bib3;
 using BotEngine.Common;
+using Sanderling.Parse;
+using System.Linq;
 
 namespace Sanderling.ABot.Parse
 {
@@ -15,5 +17,10 @@ namespace Sanderling.ABot.Parse
 
 		static public string StatusStringFromDroneEntryText(this string droneEntryText) =>
 			droneEntryText?.RegexMatchIfSuccess(StatusStringFromDroneEntryTextRegexPattern)?.Groups[1]?.Value?.RemoveXmlTag()?.Trim();
+
+		static public bool ManeuverStartPossible(this IMemoryMeasurement memoryMeasurement) =>
+			!(memoryMeasurement?.IsDocked ?? false) &&
+			!new[] { ShipManeuverTypeEnum.Warp, ShipManeuverTypeEnum.Jump, ShipManeuverTypeEnum.Docked }.Contains(
+				memoryMeasurement?.ShipUi?.Indication?.ManeuverType ?? ShipManeuverTypeEnum.None);
 	}
 }

@@ -3,6 +3,7 @@ using System.Linq;
 using Sanderling.Motor;
 using Sanderling.Parse;
 using BotEngine.Common;
+using Sanderling.ABot.Parse;
 
 namespace Sanderling.ABot.Bot.Task
 {
@@ -24,8 +25,7 @@ namespace Sanderling.ABot.Bot.Task
 
 				var currentManeuverType = memoryMeasurement?.ShipUi?.Indication?.ManeuverType;
 
-				if (ShipManeuverTypeEnum.Warp == currentManeuverType ||
-					ShipManeuverTypeEnum.Jump == currentManeuverType)
+				if (!memoryMeasurement.ManeuverStartPossible())
 					yield break;
 
 				var probeScannerWindow = memoryMeasurement?.WindowProbeScanner?.FirstOrDefault();
@@ -34,12 +34,7 @@ namespace Sanderling.ABot.Bot.Task
 					probeScannerWindow?.ScanResultView?.Entry?.FirstOrDefault(AnomalySuitableGeneral);
 
 				if (null != scanResultCombatSite)
-					yield return new MenuEntryInMenuRootTask
-					{
-						Bot = bot,
-						RootUIElement = scanResultCombatSite,
-						MenuEntryRegexPattern = @"warp.*within\s*0",
-					};
+					yield return scanResultCombatSite.ClickMenuEntryByRegexPattern(bot, ParseStatic.WarpToAt0RegexPattern);
 			}
 		}
 

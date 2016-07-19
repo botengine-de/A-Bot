@@ -4,24 +4,23 @@ using Sanderling.Interface.MemoryStruct;
 using System.Linq;
 using BotEngine.Common;
 using Bib3.Geometrik;
+using System;
+using Bib3;
 
 namespace Sanderling.ABot.Bot.Task
 {
-	public class MenuEntryInMenuRootTask : IBotTask
+	public class MenuPathTask : IBotTask
 	{
 		public Bot Bot;
 
 		public IUIElement RootUIElement;
 
-		public string MenuEntryRegexPattern;
+		public string[][] ListMenuListPriorityEntryRegexPattern;
 
 		public IEnumerable<IBotTask> Component => null;
 
 		bool MenuOpenOnRootPossible()
 		{
-			if (!(Bot.MouseClickLastAgeStepCountFromUIElement(RootUIElement) <= 1))
-				return false;
-
 			var memoryMeasurement = Bot?.MemoryMeasurementAtTime?.Value;
 
 			var menu = memoryMeasurement?.Menu?.FirstOrDefault();
@@ -56,20 +55,65 @@ namespace Sanderling.ABot.Bot.Task
 			{
 				var memoryMeasurement = Bot?.MemoryMeasurementAtTime?.Value;
 
-				var menu = memoryMeasurement?.Menu?.FirstOrDefault();
+				var listMenu = memoryMeasurement?.Menu?.ToArray();
 
 				var rootUIElement = RootUIElement;
 
 				if (null == rootUIElement)
 					return null;
 
-				var menuEntry = menu?.Entry?.FirstOrDefault(c => c?.Text?.RegexMatchSuccessIgnoreCase(MenuEntryRegexPattern) ?? false);
+				IMenuEntry menuEntryToContinue = null;
 
-				if (MenuOpenOnRootPossible() && null != menuEntry)
-					return menuEntry?.MouseClick(BotEngine.Motor.MouseButtonIdEnum.Left);
+				var mouseClickOnRootAge = Bot?.MouseClickLastAgeStepCountFromUIElement(RootUIElement);
 
-				return RootUIElement?.MouseClick(BotEngine.Motor.MouseButtonIdEnum.Right);
+				if (MenuOpenOnRootPossible() && mouseClickOnRootAge <= listMenu?.Length)
+				{
+					var levelCount = Math.Min(ListMenuListPriorityEntryRegexPattern?.Length ?? 0, listMenu?.Length ?? 0);
+
+					for (int levelIndex = 0; levelIndex < levelCount; levelIndex++)
+					{
+						var listPriorityEntryRegexPattern = ListMenuListPriorityEntryRegexPattern[levelIndex];
+
+						var menuEntry =
+							listPriorityEntryRegexPattern
+							?.Select(priorityEntryRegexPattern =>
+								listMenu[levelIndex]?.Entry
+								?.FirstOrDefault(c => c?.Text?.RegexMatchSuccessIgnoreCase(priorityEntryRegexPattern) ?? false))
+							?.WhereNotDefault()?.FirstOrDefault();
+
+						if (null == menuEntry)
+							break;
+
+						menuEntryToContinue = menuEntry;
+
+						if (!(menuEntry?.HighlightVisible ?? false))
+							break;
+					}
+				}
+
+				return
+					menuEntryToContinue?.MouseClick(BotEngine.Motor.MouseButtonIdEnum.Left) ??
+					RootUIElement?.MouseClick(BotEngine.Motor.MouseButtonIdEnum.Right);
 			}
+		}
+	}
+
+	static public class MenuTaskExtension
+	{
+		static public MenuPathTask ClickMenuEntryByRegexPattern(
+			this IUIElement rootUIElement,
+			Bot bot,
+			string menuEntryRegexPattern)
+		{
+			if (null == rootUIElement)
+				return null;
+
+			return new MenuPathTask
+			{
+				Bot = bot,
+				RootUIElement = rootUIElement,
+				ListMenuListPriorityEntryRegexPattern = new[] { new[] { menuEntryRegexPattern } },
+			};
 		}
 	}
 }

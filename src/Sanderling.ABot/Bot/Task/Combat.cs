@@ -27,10 +27,7 @@ namespace Sanderling.ABot.Bot.Task
 
 				var memoryMeasurement = memoryMeasurementAtTime?.Value;
 
-				var currentManeuverType = memoryMeasurement?.ShipUi?.Indication?.ManeuverType;
-
-				if (ShipManeuverTypeEnum.Warp == currentManeuverType ||
-					ShipManeuverTypeEnum.Jump == currentManeuverType)
+				if (!memoryMeasurement.ManeuverStartPossible())
 					yield break;
 
 				var listOverviewEntryToAttack =
@@ -52,12 +49,12 @@ namespace Sanderling.ABot.Bot.Task
 					if (shouldAttackTarget)
 						yield return bot.EnsureIsActive(setModuleWeapon);
 					else
-						yield return new MenuEntryInMenuRootTask { Bot = bot, MenuEntryRegexPattern = "unlock", RootUIElement = targetSelected };
+						yield return targetSelected.ClickMenuEntryByRegexPattern(bot, "unlock");
 
 				var droneListView = memoryMeasurement?.WindowDroneView?.FirstOrDefault()?.ListView;
 
 				var droneGroupWithNameMatchingPattern = new Func<string, DroneViewEntryGroup>(namePattern =>
-					droneListView?.Entry?.OfType<DroneViewEntryGroup>()?.FirstOrDefault(group => group?.LabelTextLargest()?.Text?.RegexMatchSuccessIgnoreCase(namePattern) ?? false));
+						droneListView?.Entry?.OfType<DroneViewEntryGroup>()?.FirstOrDefault(group => group?.LabelTextLargest()?.Text?.RegexMatchSuccessIgnoreCase(namePattern) ?? false));
 
 				var droneGroupInBay = droneGroupWithNameMatchingPattern("bay");
 				var droneGroupInLocalSpace = droneGroupWithNameMatchingPattern("local space");
@@ -80,41 +77,21 @@ namespace Sanderling.ABot.Bot.Task
 				if (shouldAttackTarget)
 				{
 					if (0 < droneInBayCount && droneInLocalSpaceCount < 5)
-						yield return new MenuEntryInMenuRootTask
-						{
-							Bot = bot,
-							RootUIElement = droneGroupInBay,
-							MenuEntryRegexPattern = @"launch",
-						};
+						yield return droneGroupInBay.ClickMenuEntryByRegexPattern(bot, @"launch");
 
 					if (droneInLocalSpaceIdle)
-						yield return new MenuEntryInMenuRootTask
-						{
-							Bot = bot,
-							RootUIElement = droneGroupInLocalSpace,
-							MenuEntryRegexPattern = @"engage",
-						};
+						yield return droneGroupInLocalSpace.ClickMenuEntryByRegexPattern(bot, @"engage");
 				}
 
 				var overviewEntryLockTarget =
 					listOverviewEntryToAttack?.FirstOrDefault(entry => !((entry?.MeTargeted ?? false) || (entry?.MeTargeting ?? false)));
 
 				if (null != overviewEntryLockTarget && !(TargetCountMax <= memoryMeasurement?.Target?.Length))
-					yield return new MenuEntryInMenuRootTask
-					{
-						Bot = bot,
-						RootUIElement = overviewEntryLockTarget,
-						MenuEntryRegexPattern = @"^lock\s*target",
-					};
+					yield return overviewEntryLockTarget.ClickMenuEntryByRegexPattern(bot, @"^lock\s*target");
 
 				if (!(0 < listOverviewEntryToAttack?.Length))
 					if (0 < droneInLocalSpaceCount)
-						yield return new MenuEntryInMenuRootTask
-						{
-							Bot = bot,
-							RootUIElement = droneGroupInLocalSpace,
-							MenuEntryRegexPattern = @"return.*bay",
-						};
+						yield return droneGroupInLocalSpace.ClickMenuEntryByRegexPattern(bot, @"return.*bay");
 					else
 						Completed = true;
 			}

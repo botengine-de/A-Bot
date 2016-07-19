@@ -31,7 +31,7 @@ namespace Sanderling.ABot.Bot
 
 		readonly IDictionary<Accumulation.IShipUiModule, int> ToggleLastStepIndexFromModule = new Dictionary<Accumulation.IShipUiModule, int>();
 
-		KeyValuePair<Deserialization, Config> configSerialAndStruct;
+		public KeyValuePair<Deserialization, Config> ConfigSerialAndStruct { private set; get; }
 
 		public Int64? MouseClickLastAgeStepCountFromUIElement(Interface.MemoryStruct.IUIElement uiElement)
 		{
@@ -56,7 +56,7 @@ namespace Sanderling.ABot.Bot
 
 			try
 			{
-				configSerialAndStruct = input?.ConfigSerial?.String?.DeserializeIfDifferent(configSerialAndStruct) ?? configSerialAndStruct;
+				ConfigSerialAndStruct = input?.ConfigSerial?.String?.DeserializeIfDifferent(ConfigSerialAndStruct) ?? ConfigSerialAndStruct;
 
 				MemoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
 
