@@ -2,7 +2,7 @@
 
 A-Bot is an eve online anomaly ratting bot.
 
-### General Features ###
+### Features ###
 * **safe**: does not inject into or write to the eve online client. That is why using it with eve online is not detectable.
 * **accurate & robust**: uses memory reading to retrieve information about the game state. In contrast to screen scraping, this approach won't be thrown off by a noisy background or non-default UI settings.
 * **easy to use**: automatically detects your fitting and comes with reasonable default settings. Thus you can start using it without any setup.
