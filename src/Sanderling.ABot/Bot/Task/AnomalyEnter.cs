@@ -23,8 +23,6 @@ namespace Sanderling.ABot.Bot.Task
 
 				var memoryMeasurement = memoryMeasurementAtTime?.Value;
 
-				var currentManeuverType = memoryMeasurement?.ShipUi?.Indication?.ManeuverType;
-
 				if (!memoryMeasurement.ManeuverStartPossible())
 					yield break;
 
