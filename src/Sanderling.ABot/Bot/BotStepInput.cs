@@ -15,7 +15,7 @@ namespace Sanderling.ABot.Bot
 
 		public BotEngine.Interface.FromProcessMeasurement<Interface.MemoryStruct.IMemoryMeasurement> FromProcessMemoryMeasurement;
 
-		public string PreferencesSerial;
+		public StringAtPath ConfigSerial;
 
 		public MotionResult[] StepLastMotionResult;
 	}

@@ -5,6 +5,7 @@ using Sanderling.Interface.MemoryStruct;
 using Sanderling.Motor;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 
 namespace Sanderling.ABot.Exe
@@ -19,7 +20,11 @@ namespace Sanderling.ABot.Exe
 
 		const int MemoryMeasurementDistanceMaxMilli = 3000;
 
+		const string BotConfigFileName = "bot.config";
+
 		PropertyGenTimespanInt64<Bot.MotionResult[]> BotStepLastMotionResult;
+
+		PropertyGenTimespanInt64<KeyValuePair<Exception, StringAtPath>> BotConfigLoaded;
 
 		Int64? MeasurementRequestTime()
 		{
@@ -52,6 +57,7 @@ namespace Sanderling.ABot.Exe
 					TimeMilli = time.Value,
 					FromProcessMemoryMeasurement = memoryMeasurementLast,
 					StepLastMotionResult = BotStepLastMotionResult?.Value,
+					ConfigSerial = BotConfigLoaded?.Value.Value,
 				});
 
 				if (motionEnable)
@@ -93,6 +99,28 @@ namespace Sanderling.ABot.Exe
 			BotStepLastMotionResult = new PropertyGenTimespanInt64<Bot.MotionResult[]>(listMotionResult.ToArray(), startTime, GetTimeStopwatch());
 
 			Thread.Sleep(FromMotionToMeasurementDelayMilli);
+		}
+
+		void BotConfigLoad()
+		{
+			Exception exception = null;
+			string configString = null;
+			var configFilePath = AssemblyDirectoryPath.PathToFilesysChild(BotConfigFileName);
+
+			try
+			{
+
+				using (var fileStream = new FileStream(configFilePath, FileMode.Open, FileAccess.Read))
+					configString = new StreamReader(fileStream).ReadToEnd();
+			}
+			catch (Exception e)
+			{
+				exception = e;
+			}
+
+			BotConfigLoaded = new PropertyGenTimespanInt64<KeyValuePair<Exception, StringAtPath>>(new KeyValuePair<Exception, StringAtPath>(
+				exception,
+				new StringAtPath { Path = configFilePath, String = configString }), GetTimeStopwatch());
 		}
 	}
 }

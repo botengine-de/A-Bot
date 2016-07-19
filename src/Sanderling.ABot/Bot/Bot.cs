@@ -7,6 +7,7 @@ using System;
 using Sanderling.Motor;
 using Sanderling.ABot.Bot.Task;
 using Sanderling.ABot.Bot.Memory;
+using Sanderling.ABot.Serialization;
 
 namespace Sanderling.ABot.Bot
 {
@@ -29,6 +30,8 @@ namespace Sanderling.ABot.Bot
 		readonly IDictionary<Int64, int> MouseClickLastStepIndexFromUIElementId = new Dictionary<Int64, int>();
 
 		readonly IDictionary<Accumulation.IShipUiModule, int> ToggleLastStepIndexFromModule = new Dictionary<Accumulation.IShipUiModule, int>();
+
+		KeyValuePair<Deserialization, Config> configSerialAndStruct;
 
 		public Int64? MouseClickLastAgeStepCountFromUIElement(Interface.MemoryStruct.IUIElement uiElement)
 		{
@@ -53,6 +56,8 @@ namespace Sanderling.ABot.Bot
 
 			try
 			{
+				configSerialAndStruct = input?.ConfigSerial?.String?.DeserializeIfDifferent(configSerialAndStruct) ?? configSerialAndStruct;
+
 				MemoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
 
 				MemoryMeasurementAccu.Accumulate(MemoryMeasurementAtTime);
