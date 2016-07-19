@@ -1,4 +1,5 @@
-﻿using BotEngine.Interface;
+﻿using Bib3.Synchronization;
+using BotEngine.Interface;
 using Sanderling.Interface.MemoryStruct;
 using System;
 using System.Threading.Tasks;
@@ -37,7 +38,7 @@ namespace Sanderling.ABot.Exe
 
 			if (eveOnlineClientProcessId.HasValue && measurementRequestTime <= GetTimeStopwatch())
 				if (MemoryMeasurementRequestRateLimit.AttemptPass(GetTimeStopwatch(), 700))
-					Task.Run(() => MeasurementMemoryTake(eveOnlineClientProcessId.Value, measurementRequestTime));
+					Task.Run(() => botLock.IfLockIsAvailableEnter(() => MeasurementMemoryTake(eveOnlineClientProcessId.Value, measurementRequestTime)));
 		}
 
 		void MeasurementMemoryTake(int processId, Int64 measurementBeginTimeMinMilli)

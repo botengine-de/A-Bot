@@ -40,7 +40,7 @@ namespace Sanderling.ABot.Exe
 
 		void BotProgress(bool motionEnable)
 		{
-			botLock.InvokeIfNotLocked(() =>
+			botLock.IfLockIsAvailableEnter(() =>
 			{
 				var memoryMeasurementLast = this.MemoryMeasurementLast;
 
