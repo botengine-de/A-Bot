@@ -133,11 +133,14 @@ namespace Sanderling.ABot.Bot
 			if (!saveShipTask.AllowRoam)
 				yield break;
 
-			yield return new UndockTask { MemoryMeasurement = MemoryMeasurementAtTime?.Value };
-
 			var combatTask = new CombatTask { bot = this };
 
 			yield return combatTask;
+
+			if (!saveShipTask.AllowAnomalyEnter)
+				yield break;
+
+			yield return new UndockTask { MemoryMeasurement = MemoryMeasurementAtTime?.Value };
 
 			if (combatTask.Completed)
 				yield return new AnomalyEnter { bot = this };

@@ -13,6 +13,12 @@ namespace Sanderling.ABot.Bot.Task
 
 		public bool AllowRoam;
 
+		public bool AllowAnomalyEnter;
+
+		const int AllowRoamSessionDurationMin = 60 * 7;
+
+		const int AllowAnomalyEnterSessionDurationMin = AllowRoamSessionDurationMin + 60 * 7;
+
 		static public bool ChatIsClean(WindowChatChannel chatWindow)
 		{
 			if (null == chatWindow)
@@ -38,9 +44,12 @@ namespace Sanderling.ABot.Bot.Task
 
 				var localChatWindow = memoryMeasurement?.WindowChatChannel?.FirstOrDefault(window => window?.Caption?.RegexMatchSuccessIgnoreCase(@"local\s*\[") ?? false);
 
-				if (charIsLocatedInHighsec || ChatIsClean(localChatWindow))
+				var sessionDurationSufficient = AllowRoamSessionDurationMin <= memoryMeasurement?.SessionDurationRemaining;
+
+				if (sessionDurationSufficient && (charIsLocatedInHighsec || ChatIsClean(localChatWindow)))
 				{
 					AllowRoam = true;
+					AllowAnomalyEnter = AllowAnomalyEnterSessionDurationMin <= memoryMeasurement?.SessionDurationRemaining;
 					yield break;
 				}
 
