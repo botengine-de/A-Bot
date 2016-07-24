@@ -32,7 +32,7 @@ namespace Sanderling.ABot.Bot.Task
 					probeScannerWindow?.ScanResultView?.Entry?.FirstOrDefault(AnomalySuitableGeneral);
 
 				if (null != scanResultCombatSite)
-					yield return scanResultCombatSite.ClickMenuEntryByRegexPattern(bot, ParseStatic.WarpToAt0RegexPattern);
+					yield return scanResultCombatSite.ClickMenuEntryByRegexPattern(bot, ParseStatic.MenuEntryWarpToAtLeafRegexPattern);
 			}
 		}
 

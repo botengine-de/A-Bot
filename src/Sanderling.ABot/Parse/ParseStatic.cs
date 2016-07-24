@@ -2,6 +2,6 @@
 {
 	static public class ParseStatic
 	{
-		public const string WarpToAt0RegexPattern = @"warp.*within\s*0";
+		public const string MenuEntryWarpToAtLeafRegexPattern = @"warp.*within.*m";
 	}
 }

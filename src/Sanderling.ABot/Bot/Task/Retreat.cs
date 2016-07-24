@@ -23,7 +23,7 @@ namespace Sanderling.ABot.Bot.Task
 				{
 					RootUIElement = memoryMeasurement?.InfoPanelCurrentSystem?.ListSurroundingsButton,
 					Bot = Bot,
-					ListMenuListPriorityEntryRegexPattern = new[] { new[] { retreatBookmark }, new[] { @"dock", ParseStatic.WarpToAt0RegexPattern } },
+					ListMenuListPriorityEntryRegexPattern = new[] { new[] { retreatBookmark }, new[] { @"dock", ParseStatic.MenuEntryWarpToAtLeafRegexPattern } },
 				};
 			}
 		}
