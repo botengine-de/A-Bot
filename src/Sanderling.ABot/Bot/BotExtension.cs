@@ -27,5 +27,8 @@ namespace Sanderling.ABot.Bot
 			this Bot bot,
 			IOverviewEntry entry) =>
 			AttackPriorityIndexForOverviewEntryEWar(bot?.OverviewMemory?.SetEWarTypeFromOverviewEntry(entry));
+
+		static public bool ShouldBeIncludedInStepOutput(this IBotTask task) =>
+			null != task?.Motion;
 	}
 }

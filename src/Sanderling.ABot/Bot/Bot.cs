@@ -46,64 +46,71 @@ namespace Sanderling.ABot.Bot
 		public Int64? ToggleLastAgeStepCountFromModule(Accumulation.IShipUiModule module) =>
 			stepIndex - ToggleLastStepIndexFromModule?.TryGetValueNullable(module);
 
+		IEnumerable<IBotTask[]> StepOutputListTaskPath() =>
+			((IBotTask)new BotTask { Component = RootTaskListComponent() })
+			?.EnumeratePathToNodeFromTreeDFirst(node => node?.Component)
+			?.Where(taskPath => (taskPath?.LastOrDefault()).ShouldBeIncludedInStepOutput())
+			?.Take(1);
+
+		void MemorizeStepInput(BotStepInput input)
+		{
+			ConfigSerialAndStruct = input?.ConfigSerial?.String?.DeserializeIfDifferent(ConfigSerialAndStruct) ?? ConfigSerialAndStruct;
+
+			MemoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
+
+			MemoryMeasurementAccu.Accumulate(MemoryMeasurementAtTime);
+
+			OverviewMemory.Aggregate(MemoryMeasurementAtTime);
+		}
+
+		void MemorizeStepResult(BotStepResult stepResult)
+		{
+			var setMotionMouseWaypointUIElement =
+				stepResult?.ListMotion
+				?.Select(motion => motion?.MotionParam)
+				?.Where(motionParam => 0 < motionParam?.MouseButton?.Count())
+				?.Select(motionParam => motionParam?.MouseListWaypoint)
+				?.ConcatNullable()?.Select(mouseWaypoint => mouseWaypoint?.UIElement)?.WhereNotDefault();
+
+			foreach (var mouseWaypointUIElement in setMotionMouseWaypointUIElement.EmptyIfNull())
+				MouseClickLastStepIndexFromUIElementId[mouseWaypointUIElement.Id] = stepIndex;
+		}
+
 		public BotStepResult Step(BotStepInput input)
 		{
 			StepLastInput = input;
 
 			Exception exception = null;
 
-			var listTaskPath = new List<IBotTask[]>();
+			var listMotion = new List<MotionRecommendation>();
 
 			try
 			{
-				ConfigSerialAndStruct = input?.ConfigSerial?.String?.DeserializeIfDifferent(ConfigSerialAndStruct) ?? ConfigSerialAndStruct;
+				MemorizeStepInput(input);
 
-				MemoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
+				var outputListTaskPath = StepOutputListTaskPath()?.ToArray();
 
-				MemoryMeasurementAccu.Accumulate(MemoryMeasurementAtTime);
+				foreach (var moduleToggle in outputListTaskPath.ConcatNullable().OfType<ModuleToggleTask>().Select(moduleToggleTask => moduleToggleTask?.module).WhereNotDefault())
+					ToggleLastStepIndexFromModule[moduleToggle] = stepIndex;
 
-				OverviewMemory.Aggregate(MemoryMeasurementAtTime);
+				foreach (var taskPath in outputListTaskPath.EmptyIfNull())
+				{
+					var taskMotionParam = taskPath?.LastOrDefault()?.Motion;
 
-				var sequenceTaskPath =
-					((IBotTask)new BotTask { Component = SequenceRootTask() })?.EnumeratePathToNodeFromTreeDFirst(node => node?.Component)?.Where(path => null != path?.LastOrDefault());
+					if (null == taskMotionParam)
+						continue;
 
-				var sequenceTaskPathWithMotion = sequenceTaskPath?.Where(task => null != task?.LastOrDefault()?.Motion);
-
-				listTaskPath.Add(sequenceTaskPathWithMotion?.FirstOrDefault());
+					listMotion.Add(new MotionRecommendation
+					{
+						Id = motionId++,
+						MotionParam = taskMotionParam,
+					});
+				}
 			}
 			catch (Exception e)
 			{
 				exception = e;
 			}
-
-			var listMotion = new List<MotionRecommendation>();
-
-			foreach (var moduleToggle in listTaskPath.ConcatNullable().OfType<ModuleToggleTask>().Select(moduleToggleTask => moduleToggleTask?.module).WhereNotDefault())
-				ToggleLastStepIndexFromModule[moduleToggle] = stepIndex;
-
-			foreach (var taskPath in listTaskPath.EmptyIfNull())
-			{
-				var taskMotionParam = taskPath?.LastOrDefault()?.Motion;
-
-				if (null == taskMotionParam)
-					continue;
-
-				listMotion.Add(new MotionRecommendation
-				{
-					Id = motionId++,
-					MotionParam = taskMotionParam,
-				});
-			}
-
-			var setMotionMOuseWaypointUIElement =
-				listMotion
-				?.Select(motion => motion?.MotionParam)
-				?.Where(motionParam => 0 < motionParam?.MouseButton?.Count())
-				?.Select(motionParam => motionParam?.MouseListWaypoint)
-				?.ConcatNullable()?.Select(mouseWaypoint => mouseWaypoint?.UIElement)?.WhereNotDefault();
-
-			foreach (var mouseWaypointUIElement in setMotionMOuseWaypointUIElement.EmptyIfNull())
-				MouseClickLastStepIndexFromUIElementId[mouseWaypointUIElement.Id] = stepIndex;
 
 			var stepResult = stepLastResult = new BotStepResult
 			{
@@ -111,12 +118,14 @@ namespace Sanderling.ABot.Bot
 				ListMotion = listMotion?.ToArrayIfNotEmpty(),
 			};
 
+			MemorizeStepResult(stepResult);
+
 			++stepIndex;
 
 			return stepResult;
 		}
 
-		IEnumerable<IBotTask> SequenceRootTask()
+		IEnumerable<IBotTask> RootTaskListComponent()
 		{
 			yield return new EnableInfoPanelCurrentSystem { MemoryMeasurement = MemoryMeasurementAtTime?.Value };
 
