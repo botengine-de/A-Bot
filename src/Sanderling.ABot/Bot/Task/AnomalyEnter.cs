@@ -7,35 +7,49 @@ using Sanderling.ABot.Parse;
 
 namespace Sanderling.ABot.Bot.Task
 {
-	public class AnomalyEnter : IBotTask
-	{
-		public Bot bot;
+    public class AnomalyEnter : IBotTask
+    {
+        public Bot bot;
 
-		static public bool AnomalySuitableGeneral(Interface.MemoryStruct.IListEntry scanResult) =>
-			scanResult?.CellValueFromColumnHeader("Group")?.RegexMatchSuccessIgnoreCase("combat") ?? false;
+        static public bool AnomalySuitableGeneral(Interface.MemoryStruct.IListEntry scanResult) =>
+            scanResult?.CellValueFromColumnHeader("Group")?.RegexMatchSuccessIgnoreCase("combat") ?? false;
 
-		public IEnumerable<IBotTask> Component
-		{
-			get
-			{
-				var memoryMeasurementAtTime = bot?.MemoryMeasurementAtTime;
-				var memoryMeasurementAccu = bot?.MemoryMeasurementAccu;
+        public bool AnomalySuitableForBotConfig(Interface.MemoryStruct.IListEntry scanResult)
+        {
+            var setAnomalyEnabledNamePattern = bot.ConfigSerialAndStruct.Value?.SetAnomalyEnabledNamePattern;
+            var anomalyName = scanResult?.CellValueFromColumnHeader("Name");
 
-				var memoryMeasurement = memoryMeasurementAtTime?.Value;
+            return
+                setAnomalyEnabledNamePattern?.Any(enabledNamePattern =>
+                anomalyName?.RegexMatchSuccessIgnoreCase(enabledNamePattern) ?? false) ?? true;
+        }
 
-				if (!memoryMeasurement.ManeuverStartPossible())
-					yield break;
+        public bool AnomalySuitable(Interface.MemoryStruct.IListEntry scanResult) =>
+            AnomalySuitableGeneral(scanResult) &&
+            AnomalySuitableForBotConfig(scanResult);
 
-				var probeScannerWindow = memoryMeasurement?.WindowProbeScanner?.FirstOrDefault();
+        public IEnumerable<IBotTask> Component
+        {
+            get
+            {
+                var memoryMeasurementAtTime = bot?.MemoryMeasurementAtTime;
+                var memoryMeasurementAccu = bot?.MemoryMeasurementAccu;
 
-				var scanResultCombatSite =
-					probeScannerWindow?.ScanResultView?.Entry?.FirstOrDefault(AnomalySuitableGeneral);
+                var memoryMeasurement = memoryMeasurementAtTime?.Value;
 
-				if (null != scanResultCombatSite)
-					yield return scanResultCombatSite.ClickMenuEntryByRegexPattern(bot, ParseStatic.MenuEntryWarpToAtLeafRegexPattern);
-			}
-		}
+                if (!memoryMeasurement.ManeuverStartPossible())
+                    yield break;
 
-		public MotionParam Motion => null;
-	}
+                var probeScannerWindow = memoryMeasurement?.WindowProbeScanner?.FirstOrDefault();
+
+                var scanResultCombatSite =
+                    probeScannerWindow?.ScanResultView?.Entry?.FirstOrDefault(AnomalySuitable);
+
+                if (null != scanResultCombatSite)
+                    yield return scanResultCombatSite.ClickMenuEntryByRegexPattern(bot, ParseStatic.MenuEntryWarpToAtLeafRegexPattern);
+            }
+        }
+
+        public MotionParam Motion => null;
+    }
 }
