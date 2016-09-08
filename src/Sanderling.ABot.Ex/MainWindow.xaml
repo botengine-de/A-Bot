@@ -10,7 +10,11 @@
         Height="350" Width="525"
         KeyDown="Window_KeyDown">
     <Grid>
-        <Sanderling.ABot.UI:Main
-            x:Name="Main"></Sanderling.ABot.UI:Main>
+        <DockPanel>
+            <TextBlock
+                AllowDrop="True" Drop="TextBlock_Drop" Text="drop file to load memory measurement to simulate"
+                DockPanel.Dock="Top"></TextBlock>
+            <Sanderling.ABot.UI:Main x:Name="Main" />
+        </DockPanel>
     </Grid>
 </Window>

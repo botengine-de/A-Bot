@@ -8,79 +8,88 @@ using System.Windows.Threading;
 
 namespace Sanderling.ABot.Exe
 {
-	public partial class App : Application
-	{
-		static string AssemblyDirectoryPath => Bib3.FCL.Glob.ZuProcessSelbsctMainModuleDirectoryPfaadBerecne().EnsureEndsWith(@"\");
+    public partial class App : Application
+    {
+        static string AssemblyDirectoryPath => Bib3.FCL.Glob.ZuProcessSelbsctMainModuleDirectoryPfaadBerecne().EnsureEndsWith(@"\");
 
-		static public Int64 GetTimeStopwatch() => Bib3.Glob.StopwatchZaitMiliSictInt();
+        static public Int64 GetTimeStopwatch() => Bib3.Glob.StopwatchZaitMiliSictInt();
 
-		public App()
-		{
-			BotConfigLoad();
+        public App()
+        {
+            BotConfigLoad();
 
-			AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
 
-			SensorServerDispatcher.CyclicExchangeStart();
+            SensorServerDispatcher.CyclicExchangeStart();
 
-			TimerConstruct();
-		}
+            TimerConstruct();
 
-		private System.Reflection.Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
-		{
-			var matchFullName =
-				AppDomain.CurrentDomain.GetAssemblies()
-				?.FirstOrDefault(candidate => string.Equals(candidate.GetName().FullName, args?.Name));
+            Exe.MainWindow.SimulateMeasurement += MainWindow_SimulateMeasurement;
+        }
 
-			if (null != matchFullName)
-				return matchFullName;
+        private void MainWindow_SimulateMeasurement(Interface.MemoryStruct.IMemoryMeasurement measurement)
+        {
+            var time = GetTimeStopwatch();
 
-			var matchName =
-				AppDomain.CurrentDomain.GetAssemblies()
-				?.FirstOrDefault(candidate => string.Equals(candidate.GetName().Name, args?.Name));
+            MemoryMeasurementLast = new BotEngine.Interface.FromProcessMeasurement<Interface.MemoryStruct.IMemoryMeasurement>(measurement, time, time);
+        }
 
-			return matchName;
-		}
+        private System.Reflection.Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            var matchFullName =
+                AppDomain.CurrentDomain.GetAssemblies()
+                ?.FirstOrDefault(candidate => string.Equals(candidate.GetName().FullName, args?.Name));
 
-		void TimerConstruct()
-		{
-			var timer = new DispatcherTimer(TimeSpan.FromSeconds(1.0 / 10), DispatcherPriority.Normal, Timer_Tick, Dispatcher);
+            if (null != matchFullName)
+                return matchFullName;
 
-			timer.Start();
-		}
+            var matchName =
+                AppDomain.CurrentDomain.GetAssemblies()
+                ?.FirstOrDefault(candidate => string.Equals(candidate.GetName().Name, args?.Name));
 
-		void Timer_Tick(object sender, object e)
-		{
-			Window?.ProcessInput();
+            return matchName;
+        }
 
-			InterfaceExchange();
+        void TimerConstruct()
+        {
+            var timer = new DispatcherTimer(TimeSpan.FromSeconds(1.0 / 10), DispatcherPriority.Normal, Timer_Tick, Dispatcher);
 
-			UIPresent();
+            timer.Start();
+        }
 
-			var motionEnable = MainControl?.IsBotMotionEnabled ?? false;
+        void Timer_Tick(object sender, object e)
+        {
+            Window?.ProcessInput();
 
-			Task.Run(() => BotProgress(motionEnable));
-		}
+            InterfaceExchange();
 
-		private void Application_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
-		{
-			try
-			{
-				var filePath = AssemblyDirectoryPath.PathToFilesysChild(DateTime.Now.SictwaiseKalenderString(".", 0) + " Exception");
+            UIPresent();
 
-				filePath.WriteToFileAndCreateDirectoryIfNotExisting(Encoding.UTF8.GetBytes(e.Exception.SictString()));
+            var motionEnable = MainControl?.IsBotMotionEnabled ?? false;
 
-				var message = "exception written to file: " + filePath;
+            Task.Run(() => BotProgress(motionEnable));
+        }
 
-				MessageBox.Show(message, message, MessageBoxButton.OK, MessageBoxImage.Exclamation);
-			}
-			catch (Exception PersistException)
-			{
-				Bib3.FCL.GBS.Extension.MessageBoxException(PersistException);
-			}
+        private void Application_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            try
+            {
+                var filePath = AssemblyDirectoryPath.PathToFilesysChild(DateTime.Now.SictwaiseKalenderString(".", 0) + " Exception");
 
-			Bib3.FCL.GBS.Extension.MessageBoxException(e.Exception);
+                filePath.WriteToFileAndCreateDirectoryIfNotExisting(Encoding.UTF8.GetBytes(e.Exception.SictString()));
 
-			e.Handled = true;
-		}
-	}
+                var message = "exception written to file: " + filePath;
+
+                MessageBox.Show(message, message, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+            }
+            catch (Exception PersistException)
+            {
+                Bib3.FCL.GBS.Extension.MessageBoxException(PersistException);
+            }
+
+            Bib3.FCL.GBS.Extension.MessageBoxException(e.Exception);
+
+            e.Handled = true;
+        }
+    }
 }
