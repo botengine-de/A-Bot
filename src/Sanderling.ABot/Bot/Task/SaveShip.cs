@@ -42,7 +42,17 @@ namespace Sanderling.ABot.Bot.Task
 
 				var charIsLocatedInHighsec = 500 < memoryMeasurement?.InfoPanelCurrentSystem?.SecurityLevelMilli;
 
-				var localChatWindow = memoryMeasurement?.WindowChatChannel?.FirstOrDefault(window => window?.Caption?.RegexMatchSuccessIgnoreCase(@"local\s*\[") ?? false);
+				var setLocalChatWindowCandidate =
+					memoryMeasurement?.WindowChatChannel
+					?.Where(window => window?.Caption?.RegexMatchSuccessIgnoreCase(@"local") ?? false)
+					?.ToArray();
+
+				if (1 < setLocalChatWindowCandidate?.Length)
+				{
+					//  TODO:Report to user we cannot identify the local chat window.
+				}
+
+				var localChatWindow = setLocalChatWindowCandidate?.FirstOrDefault();
 
 				var sessionDurationSufficient = AllowRoamSessionDurationMin <= memoryMeasurement?.SessionDurationRemaining;
 
