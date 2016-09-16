@@ -1,4 +1,5 @@
 ﻿using Bib3;
+using Sanderling.ABot.Bot.Task;
 using Sanderling.Parse;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +30,6 @@ namespace Sanderling.ABot.Bot
 			AttackPriorityIndexForOverviewEntryEWar(bot?.OverviewMemory?.SetEWarTypeFromOverviewEntry(entry));
 
 		static public bool ShouldBeIncludedInStepOutput(this IBotTask task) =>
-			null != task?.Motion;
+			null != task?.Motion || task is DiagnosticTask;
 	}
 }

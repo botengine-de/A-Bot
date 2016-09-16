@@ -15,7 +15,7 @@ namespace Sanderling.ABot.Bot
 	{
 		public BotStepInput StepLastInput { private set; get; }
 
-		BotStepResult stepLastResult;
+		public BotStepResult StepLastResult { private set; get; }
 
 		int motionId;
 
@@ -84,11 +84,13 @@ namespace Sanderling.ABot.Bot
 
 			var listMotion = new List<MotionRecommendation>();
 
+			IBotTask[][] outputListTaskPath = null;
+
 			try
 			{
 				MemorizeStepInput(input);
 
-				var outputListTaskPath = StepOutputListTaskPath()?.ToArray();
+				outputListTaskPath = StepOutputListTaskPath()?.ToArray();
 
 				foreach (var moduleToggle in outputListTaskPath.ConcatNullable().OfType<ModuleToggleTask>().Select(moduleToggleTask => moduleToggleTask?.module).WhereNotDefault())
 					ToggleLastStepIndexFromModule[moduleToggle] = stepIndex;
@@ -112,10 +114,11 @@ namespace Sanderling.ABot.Bot
 				exception = e;
 			}
 
-			var stepResult = stepLastResult = new BotStepResult
+			var stepResult = StepLastResult = new BotStepResult
 			{
 				Exception = exception,
 				ListMotion = listMotion?.ToArrayIfNotEmpty(),
+				OutputListTaskPath = outputListTaskPath,
 			};
 
 			MemorizeStepResult(stepResult);

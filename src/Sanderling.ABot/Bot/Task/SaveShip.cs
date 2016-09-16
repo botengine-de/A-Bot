@@ -9,6 +9,9 @@ namespace Sanderling.ABot.Bot.Task
 {
 	public class SaveShipTask : IBotTask
 	{
+		public const string CannotIdentifyLocalChatWindowDiagnosticText = "can not identify local chat window.";
+		public const string LocalChatWindowNotFoundDiagnosticText = "local chat window not found.";
+
 		public Bot Bot;
 
 		public bool AllowRoam;
@@ -48,11 +51,18 @@ namespace Sanderling.ABot.Bot.Task
 					?.ToArray();
 
 				if (1 < setLocalChatWindowCandidate?.Length)
-				{
-					//  TODO:Report to user we cannot identify the local chat window.
-				}
+					yield return new DiagnosticTask
+					{
+						MessageText = CannotIdentifyLocalChatWindowDiagnosticText,
+					};
 
 				var localChatWindow = setLocalChatWindowCandidate?.FirstOrDefault();
+
+				if (null == localChatWindow)
+					yield return new DiagnosticTask
+					{
+						MessageText = LocalChatWindowNotFoundDiagnosticText,
+					};
 
 				var sessionDurationSufficient = AllowRoamSessionDurationMin <= memoryMeasurement?.SessionDurationRemaining;
 

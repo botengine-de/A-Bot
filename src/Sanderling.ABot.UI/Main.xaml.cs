@@ -29,11 +29,14 @@ namespace Sanderling.ABot.UI
 
 		public void Present(
 			SimpleInterfaceServerDispatcher interfaceServerDispatcher,
-			FromProcessMeasurement<Interface.MemoryStruct.IMemoryMeasurement> measurement)
+			FromProcessMeasurement<Interface.MemoryStruct.IMemoryMeasurement> measurement,
+			Bot.Bot	bot)
 		{
 			Interface?.Present(interfaceServerDispatcher, measurement);
 
 			InterfaceHeader?.SetStatus(Interface.InterfaceStatusEnum());
+
+			BotStepResult.Text = bot?.StepLastResult?.RenderBotStepToUIText();
 		}
 	}
 }

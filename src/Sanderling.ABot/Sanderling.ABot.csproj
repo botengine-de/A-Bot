@@ -71,6 +71,7 @@
     <Compile Include="Bot\Memory\OverviewMemory.cs" />
     <Compile Include="Bot\Task\AnomalyEnter.cs" />
     <Compile Include="Bot\Task\Combat.cs" />
+    <Compile Include="Bot\Task\DiagnosticTask.cs" />
     <Compile Include="Bot\Task\EnableInfoPanelCurrentSystem.cs" />
     <Compile Include="Bot\Task\Menu.cs" />
     <Compile Include="Bot\Task\Module.cs" />

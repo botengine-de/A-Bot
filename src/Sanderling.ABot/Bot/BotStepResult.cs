@@ -15,5 +15,7 @@ namespace Sanderling.ABot.Bot
 		public Exception Exception;
 
 		public MotionRecommendation[] ListMotion;
+
+		public IBotTask[][] OutputListTaskPath;
 	}
 }

@@ -74,6 +74,10 @@
                         </BotEngine.UI.ViewModel:ContentAndStatusIcon.Content>
                     </BotEngine.UI.ViewModel:ContentAndStatusIcon>
                 </TabItem.Header>
+
+				<TabItem.Content>
+					<TextBox Name="BotStepResult" IsReadOnly="True" VerticalScrollBarVisibility="Auto"></TextBox>
+				</TabItem.Content>
             </TabItem>
         </TabControl>
     </Grid>

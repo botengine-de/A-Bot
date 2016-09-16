@@ -24,7 +24,7 @@ namespace Sanderling.ABot.Exe
 
 		void UIPresent()
 		{
-			MainControl?.Present(SensorServerDispatcher, MemoryMeasurementLast);
+			MainControl?.Present(SensorServerDispatcher, MemoryMeasurementLast, bot);
 		}
 	}
 }
