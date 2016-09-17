@@ -31,5 +31,8 @@ namespace Sanderling.ABot.Bot
 
 		static public bool ShouldBeIncludedInStepOutput(this IBotTask task) =>
 			null != task?.Motion || task is DiagnosticTask;
+
+		static public bool LastHasMotion(this IEnumerable<IBotTask> listTask) =>
+			null != listTask?.LastOrDefault()?.Motion;
 	}
 }
