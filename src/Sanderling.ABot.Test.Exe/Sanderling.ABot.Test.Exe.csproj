@@ -95,8 +95,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BotDiagnosticMessage.cs" />
-    <Compile Include="BotMotion.cs" />
+    <Compile Include="BotStep.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
