@@ -5,7 +5,7 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sanderling.ABot", "Sanderling.ABot\Sanderling.ABot.csproj", "{39A3BE09-0A61-458E-8F73-DC55C1B58AFB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sanderling.ABot.Exe", "Sanderling.ABot.Ex\Sanderling.ABot.Exe.csproj", "{BFF86D9B-1B90-4E20-B8C9-F4EC6DDF69BC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sanderling.ABot.Exe", "Sanderling.ABot.Exe\Sanderling.ABot.Exe.csproj", "{BFF86D9B-1B90-4E20-B8C9-F4EC6DDF69BC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sanderling.ABot.UI", "Sanderling.ABot.UI\Sanderling.ABot.UI.csproj", "{C1A0220E-0F6A-4AD8-A1ED-8412685442BD}"
 EndProject
