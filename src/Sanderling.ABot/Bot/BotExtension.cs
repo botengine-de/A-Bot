@@ -34,5 +34,11 @@ namespace Sanderling.ABot.Bot
 
 		static public bool LastHasMotion(this IEnumerable<IBotTask> listTask) =>
 			null != listTask?.LastOrDefault()?.Motion;
+
+		static public IEnumerable<IBotTask[]> TakeSubsequenceWhileUnwantedInferenceRuledOut(this IEnumerable<IBotTask[]> listTaskPath) =>
+			listTaskPath
+			?.EnumerateSubsequencesStartingWithFirstElement()
+			?.OrderBy(subsequenceTaskPath => 1 == subsequenceTaskPath?.Count(BotExtension.LastHasMotion))
+			?.LastOrDefault();
 	}
 }

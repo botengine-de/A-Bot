@@ -50,9 +50,7 @@ namespace Sanderling.ABot.Bot
 			((IBotTask)new BotTask { Component = RootTaskListComponent() })
 			?.EnumeratePathToNodeFromTreeDFirst(node => node?.Component)
 			?.Where(taskPath => (taskPath?.LastOrDefault()).ShouldBeIncludedInStepOutput())
-			?.EnumerateSubsequencesStartingWithFirstElement()
-			?.OrderBy(listTaskPath => 1 == listTaskPath?.Count(BotExtension.LastHasMotion))
-			?.LastOrDefault();
+			?.TakeSubsequenceWhileUnwantedInferenceRuledOut();
 
 		void MemorizeStepInput(BotStepInput input)
 		{
