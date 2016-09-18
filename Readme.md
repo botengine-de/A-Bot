@@ -13,6 +13,7 @@ A-Bot is an eve online anomaly ratting bot.
 Follow these steps to use the bot:
 
 * download the `A-Bot.exe` file of the latest release from the releases section.
+* set the language of the eve online client to english.
 * start an eve online client and login to the game.
 * start the `A-Bot.exe`
 * undock, open probe scanner, overview window and drones window.
