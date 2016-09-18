@@ -9,76 +9,83 @@
              xmlns:BotEngine.UI.ViewModel="clr-namespace:BotEngine.UI.ViewModel;assembly=BotEngine.UI"
              mc:Ignorable="d" 
              d:DesignHeight="444" d:DesignWidth="555">
-    <UserControl.Resources>
-        <ResourceDictionary Source="pack://application:,,,/Sanderling.ABot.UI;component/resource.xaml"></ResourceDictionary>
-    </UserControl.Resources>
+	<UserControl.Resources>
+		<ResourceDictionary Source="pack://application:,,,/Sanderling.ABot.UI;component/resource.xaml"></ResourceDictionary>
+	</UserControl.Resources>
 
-    <Grid>
-        <TabControl>
-            <TabControl.Resources>
-                <Style TargetType="TabItem" BasedOn="{StaticResource ContentControlHeaderWithStatusIcon}">
-                </Style>
-            </TabControl.Resources>
+	<Grid>
+		<TabControl>
+			<TabControl.Resources>
+				<Style TargetType="TabItem" BasedOn="{StaticResource ContentControlHeaderWithStatusIcon}">
+				</Style>
+			</TabControl.Resources>
 
-            <TabItem>
-                <TabItem.Header>
-                    <BotEngine.UI.ViewModel:ContentAndStatusIcon
+			<TabItem>
+				<TabItem.Header>
+					<BotEngine.UI.ViewModel:ContentAndStatusIcon
                         x:Name="InterfaceHeader"
                         x:FieldModifier="public"
                         Content="Interface">
-                    </BotEngine.UI.ViewModel:ContentAndStatusIcon>
-                </TabItem.Header>
-                <Sanderling.UI:InterfaceToEve
+					</BotEngine.UI.ViewModel:ContentAndStatusIcon>
+				</TabItem.Header>
+				<Sanderling.UI:InterfaceToEve
                     x:Name="Interface"
                     x:FieldModifier="public">
-                </Sanderling.UI:InterfaceToEve>
-            </TabItem>
+				</Sanderling.UI:InterfaceToEve>
+			</TabItem>
 
-            <TabItem
+			<TabItem
                 IsSelected="True">
-                <TabItem.Header>
-                    <BotEngine.UI.ViewModel:ContentAndStatusIcon
+				<TabItem.Header>
+					<BotEngine.UI.ViewModel:ContentAndStatusIcon
                         x:Name="BotHeader"
                         x:FieldModifier="public">
-                        <BotEngine.UI.ViewModel:ContentAndStatusIcon.Content>
-                            <StackPanel Orientation="Horizontal">
-                                <Grid
+						<BotEngine.UI.ViewModel:ContentAndStatusIcon.Content>
+							<StackPanel Orientation="Horizontal">
+								<Grid
                                     VerticalAlignment="Center"
                                     Name="PanelMeasureDesiredHeight">
-                                    <TextBlock Text="Bot"></TextBlock>
-                                </Grid>
+									<TextBlock Text="Bot"></TextBlock>
+								</Grid>
 
-                                <Grid Grid.Column="2" Height="{Binding ElementName=PanelMeasureDesiredHeight, Path=ActualHeight}">
-                                    <Viewbox
+								<Grid Grid.Column="2" Height="{Binding ElementName=PanelMeasureDesiredHeight, Path=ActualHeight}">
+									<Viewbox
                                         Stretch="Uniform" StretchDirection="Both"
                                         Margin="2,-1">
-                                        <Bib3.FCL.GBS:ToggleButtonHorizBinär
+										<Bib3.FCL.GBS:ToggleButtonHorizBinär
                                             x:Name="ToggleButtonMotionEnable"
                                             x:FieldModifier="public">
-                                            <Bib3.FCL.GBS:ToggleButtonHorizBinär.ButtonLinxContent>
-                                                <TextBlock
+											<Bib3.FCL.GBS:ToggleButtonHorizBinär.ButtonLinxContent>
+												<TextBlock
                                             Text="pause"
                                             ToolTip="pause script execution by clicking here or by pressing Ctrl + Alt."></TextBlock>
-                                            </Bib3.FCL.GBS:ToggleButtonHorizBinär.ButtonLinxContent>
-                                            <Bib3.FCL.GBS:ToggleButtonHorizBinär.ButtonReczContent>
-                                                <TextBlock
+											</Bib3.FCL.GBS:ToggleButtonHorizBinär.ButtonLinxContent>
+											<Bib3.FCL.GBS:ToggleButtonHorizBinär.ButtonReczContent>
+												<TextBlock
                                             Text="play"
                                             ToolTip="resume script execution."></TextBlock>
-                                            </Bib3.FCL.GBS:ToggleButtonHorizBinär.ButtonReczContent>
-                                        </Bib3.FCL.GBS:ToggleButtonHorizBinär>
-                                    </Viewbox>
-                                </Grid>
+											</Bib3.FCL.GBS:ToggleButtonHorizBinär.ButtonReczContent>
+										</Bib3.FCL.GBS:ToggleButtonHorizBinär>
+									</Viewbox>
+								</Grid>
 
-                                <Grid Width="3"></Grid>
-                            </StackPanel>
-                        </BotEngine.UI.ViewModel:ContentAndStatusIcon.Content>
-                    </BotEngine.UI.ViewModel:ContentAndStatusIcon>
-                </TabItem.Header>
+								<Grid Width="3"></Grid>
+							</StackPanel>
+						</BotEngine.UI.ViewModel:ContentAndStatusIcon.Content>
+					</BotEngine.UI.ViewModel:ContentAndStatusIcon>
+				</TabItem.Header>
 
 				<TabItem.Content>
-					<TextBox Name="BotStepResult" IsReadOnly="True" VerticalScrollBarVisibility="Auto"></TextBox>
+					<DockPanel>
+						<Button
+							Click="BotStepResultCopyToClipboardButton_Click"
+							DockPanel.Dock="Bottom" Margin="3" HorizontalAlignment="Left">
+							<TextBlock Text="copy to clipboard"></TextBlock>
+						</Button>
+						<TextBox Name="BotStepResultTextBox" IsReadOnly="True" VerticalScrollBarVisibility="Auto"></TextBox>
+					</DockPanel>
 				</TabItem.Content>
-            </TabItem>
-        </TabControl>
-    </Grid>
+			</TabItem>
+		</TabControl>
+	</Grid>
 </UserControl>
