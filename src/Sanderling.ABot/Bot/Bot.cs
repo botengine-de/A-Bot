@@ -13,9 +13,11 @@ namespace Sanderling.ABot.Bot
 {
 	public class Bot
 	{
+		static public readonly Func<Int64> GetTimeMilli = Bib3.Glob.StopwatchZaitMiliSictInt;
+
 		public BotStepInput StepLastInput { private set; get; }
 
-		public BotStepResult StepLastResult { private set; get; }
+		public PropertyGenTimespanInt64<BotStepResult> StepLastResult { private set; get; }
 
 		int motionId;
 
@@ -78,6 +80,8 @@ namespace Sanderling.ABot.Bot
 
 		public BotStepResult Step(BotStepInput input)
 		{
+			var beginTimeMilli = GetTimeMilli();
+
 			StepLastInput = input;
 
 			Exception exception = null;
@@ -114,7 +118,7 @@ namespace Sanderling.ABot.Bot
 				exception = e;
 			}
 
-			var stepResult = StepLastResult = new BotStepResult
+			var stepResult = new BotStepResult
 			{
 				Exception = exception,
 				ListMotion = listMotion?.ToArrayIfNotEmpty(),
@@ -122,6 +126,8 @@ namespace Sanderling.ABot.Bot
 			};
 
 			MemorizeStepResult(stepResult);
+
+			StepLastResult = new PropertyGenTimespanInt64<BotStepResult>(stepResult, beginTimeMilli, GetTimeMilli());
 
 			++stepIndex;
 

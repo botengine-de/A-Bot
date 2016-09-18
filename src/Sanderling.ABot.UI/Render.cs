@@ -36,5 +36,15 @@ namespace Sanderling.ABot.UI
 				new [] { "" },
 				stepResult?.OutputListTaskPath?.Select(RenderTaskPathToUIText),
 			}.ConcatNullable());
+
+		static public string TimeAgeMilliToUIText(this Int64? ageMilli) =>
+			!ageMilli.HasValue ? null :
+			(ageMilli / 1000) + " s ago at " + (DateTime.Now - TimeSpan.FromMilliseconds(ageMilli.Value)).ToLongTimeString();
+
+		static public string RenderBotStepToUIText(this PropertyGenTimespanInt64<BotStepResult> stepResultAtTimeMilli) =>
+			null == stepResultAtTimeMilli ? null :
+			TimeAgeMilliToUIText(Bot.Bot.GetTimeMilli() - stepResultAtTimeMilli?.Begin) +
+			Environment.NewLine +
+			RenderBotStepToUIText(stepResultAtTimeMilli.Value);
 	}
 }
