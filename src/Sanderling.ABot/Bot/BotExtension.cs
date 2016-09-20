@@ -1,5 +1,7 @@
 ﻿using Bib3;
+using BotEngine.Common;
 using Sanderling.ABot.Bot.Task;
+using Sanderling.Interface.MemoryStruct;
 using Sanderling.Parse;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +28,7 @@ namespace Sanderling.ABot.Bot
 
 		static public int AttackPriorityIndex(
 			this Bot bot,
-			IOverviewEntry entry) =>
+			Sanderling.Parse.IOverviewEntry entry) =>
 			AttackPriorityIndexForOverviewEntryEWar(bot?.OverviewMemory?.SetEWarTypeFromOverviewEntry(entry));
 
 		static public bool ShouldBeIncludedInStepOutput(this IBotTask task) =>
@@ -40,5 +42,17 @@ namespace Sanderling.ABot.Bot
 			?.EnumerateSubsequencesStartingWithFirstElement()
 			?.OrderBy(subsequenceTaskPath => 1 == subsequenceTaskPath?.Count(BotExtension.LastHasMotion))
 			?.LastOrDefault();
+
+		static public IUIElementText TitleElementText(this IModuleButtonTooltip tooltip) =>
+			tooltip?.LabelText?.OrderByCenterVerticalDown()?.FirstOrDefault();
+
+		static public bool ShouldBeActivePermanent(this Accumulation.IShipUiModule module, Bot bot) =>
+			new[]
+			{
+				module?.TooltipLast?.Value?.IsHardener,
+				bot?.ConfigSerialAndStruct.Value?.ModuleActivePermanentSetTitlePattern
+					?.Any(activePermanentTitlePattern => module?.TooltipLast?.Value?.TitleElementText()?.Text?.RegexMatchSuccessIgnoreCase(activePermanentTitlePattern) ?? false),
+			}
+			.Any(sufficientCondition => sufficientCondition ?? false);
 	}
 }

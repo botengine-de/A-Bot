@@ -3,5 +3,7 @@
 	public class Config
 	{
 		public string RetreatBookmark;
+
+		public string[] ModuleActivePermanentSetTitlePattern;
 	}
 }
