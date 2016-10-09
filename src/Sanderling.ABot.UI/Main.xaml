@@ -86,6 +86,22 @@
 					</DockPanel>
 				</TabItem.Content>
 			</TabItem>
+
+			<TabItem>
+				<TabItem.Header>
+					<BotEngine.UI.ViewModel:ContentAndStatusIcon>
+						<BotEngine.UI.ViewModel:ContentAndStatusIcon.Content>
+							development tools
+						</BotEngine.UI.ViewModel:ContentAndStatusIcon.Content>
+					</BotEngine.UI.ViewModel:ContentAndStatusIcon>
+				</TabItem.Header>
+
+				<TabItem.Content>
+					<StackPanel>
+						<TextBlock AllowDrop="True" Drop="SimulateMeasurement_Drop" Text="drop file to load memory measurement to simulate for one step"/>
+					</StackPanel>
+				</TabItem.Content>
+			</TabItem>
 		</TabControl>
 	</Grid>
 </UserControl>

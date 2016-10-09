@@ -22,6 +22,8 @@ namespace Sanderling.ABot.Exe
 
 			SensorServerDispatcher.CyclicExchangeStart();
 
+			UI.Main.SimulateMeasurement += MainWindow_SimulateMeasurement;
+
 			TimerConstruct();
 		}
 
@@ -81,6 +83,13 @@ namespace Sanderling.ABot.Exe
 			Bib3.FCL.GBS.Extension.MessageBoxException(e.Exception);
 
 			e.Handled = true;
+		}
+
+		private void MainWindow_SimulateMeasurement(Interface.MemoryStruct.IMemoryMeasurement measurement)
+		{
+			var time = GetTimeStopwatch();
+
+			MemoryMeasurementLast = new BotEngine.Interface.FromProcessMeasurement<Interface.MemoryStruct.IMemoryMeasurement>(measurement, time, time);
 		}
 	}
 }
