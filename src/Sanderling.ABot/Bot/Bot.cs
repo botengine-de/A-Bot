@@ -56,7 +56,7 @@ namespace Sanderling.ABot.Bot
 
 		void MemorizeStepInput(BotStepInput input)
 		{
-			ConfigSerialAndStruct = input?.ConfigSerial?.String?.DeserializeIfDifferent(ConfigSerialAndStruct) ?? ConfigSerialAndStruct;
+			ConfigSerialAndStruct = (input?.ConfigSerial?.String).DeserializeIfDifferent(ConfigSerialAndStruct);
 
 			MemoryMeasurementAtTime = input?.FromProcessMemoryMeasurement?.MapValue(measurement => measurement?.Parse());
 
