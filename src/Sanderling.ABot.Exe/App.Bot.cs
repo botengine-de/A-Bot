@@ -52,6 +52,8 @@ namespace Sanderling.ABot.Exe
 				if (time <= bot?.StepLastInput?.TimeMilli)
 					return;
 
+				BotConfigLoad();
+
 				var stepResult = bot.Step(new Bot.BotStepInput
 				{
 					TimeMilli = time.Value,
@@ -109,7 +111,6 @@ namespace Sanderling.ABot.Exe
 
 			try
 			{
-
 				using (var fileStream = new FileStream(configFilePath, FileMode.Open, FileAccess.Read))
 					configString = new StreamReader(fileStream).ReadToEnd();
 			}

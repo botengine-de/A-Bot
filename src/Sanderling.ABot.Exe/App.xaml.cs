@@ -16,8 +16,6 @@ namespace Sanderling.ABot.Exe
 
 		public App()
 		{
-			BotConfigLoad();
-
 			AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
 
 			SensorServerDispatcher.CyclicExchangeStart();
