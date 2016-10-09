@@ -136,13 +136,7 @@ namespace Sanderling.ABot.Bot
 
 		IEnumerable<IBotTask> RootTaskListComponent()
 		{
-			var configDeserializeException = ConfigSerialAndStruct.Key?.Exception;
-
-			if (null != configDeserializeException)
-				yield return new DiagnosticTask { MessageText = "error parsing configuration: " + configDeserializeException.Message };
-			else
-				if (null == ConfigSerialAndStruct.Value)
-				yield return new DiagnosticTask { MessageText = "warning: no configuration supplied." };
+			yield return new BotTask { Component = EnumerateConfigDiagnostics() };
 
 			yield return new EnableInfoPanelCurrentSystem { MemoryMeasurement = MemoryMeasurementAtTime?.Value };
 
@@ -170,6 +164,17 @@ namespace Sanderling.ABot.Bot
 
 			if (combatTask.Completed)
 				yield return new AnomalyEnter { bot = this };
+		}
+
+		IEnumerable<IBotTask> EnumerateConfigDiagnostics()
+		{
+			var configDeserializeException = ConfigSerialAndStruct.Key?.Exception;
+
+			if (null != configDeserializeException)
+				yield return new DiagnosticTask { MessageText = "error parsing configuration: " + configDeserializeException.Message };
+			else
+				if (null == ConfigSerialAndStruct.Value)
+				yield return new DiagnosticTask { MessageText = "warning: no configuration supplied." };
 		}
 	}
 }
