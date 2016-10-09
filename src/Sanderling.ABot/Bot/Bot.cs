@@ -140,6 +140,9 @@ namespace Sanderling.ABot.Bot
 
 			if (null != configDeserializeException)
 				yield return new DiagnosticTask { MessageText = "error parsing configuration: " + configDeserializeException.Message };
+			else
+				if (null == ConfigSerialAndStruct.Value)
+				yield return new DiagnosticTask { MessageText = "warning: no configuration supplied." };
 
 			yield return new EnableInfoPanelCurrentSystem { MemoryMeasurement = MemoryMeasurementAtTime?.Value };
 
