@@ -136,6 +136,11 @@ namespace Sanderling.ABot.Bot
 
 		IEnumerable<IBotTask> RootTaskListComponent()
 		{
+			var configDeserializeException = ConfigSerialAndStruct.Key?.Exception;
+
+			if (null != configDeserializeException)
+				yield return new DiagnosticTask { MessageText = "error parsing configuration: " + configDeserializeException.Message };
+
 			yield return new EnableInfoPanelCurrentSystem { MemoryMeasurement = MemoryMeasurementAtTime?.Value };
 
 			var saveShipTask = new SaveShipTask { Bot = this };
