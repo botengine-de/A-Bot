@@ -34,7 +34,7 @@ namespace Sanderling.ABot.Parse
 
 		static public bool IsNeutralOrEnemy(this MemoryStruct.IChatParticipantEntry participantEntry) =>
 			!(participantEntry?.FlagIcon?.Any(flagIcon =>
-				new[] { "good standing", "excellent standing", "Pilot is in your (fleet|corporation)", }
+				new[] { "good standing", "excellent standing", "Pilot is in your (fleet|corporation|alliance)", }
 				.Any(goodStandingText => flagIcon?.HintText?.RegexMatchSuccessIgnoreCase(goodStandingText) ?? false)) ?? false);
 	}
 }
