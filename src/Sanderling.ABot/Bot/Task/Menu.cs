@@ -76,6 +76,7 @@ namespace Sanderling.ABot.Bot.Task
 
 						var menuEntry =
 							listPriorityEntryRegexPattern
+							?.WhereNotDefault()
 							?.Select(priorityEntryRegexPattern =>
 								listMenu[levelIndex]?.Entry
 								?.FirstOrDefault(c => c?.Text?.RegexMatchSuccessIgnoreCase(priorityEntryRegexPattern) ?? false))
