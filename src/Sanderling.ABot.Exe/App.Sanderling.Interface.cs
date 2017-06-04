@@ -19,7 +19,9 @@ namespace Sanderling.ABot.Exe
 
 	partial class App
 	{
-		FromProcessMeasurement<IMemoryMeasurement> MemoryMeasurementLast;
+        readonly Sensor sensor = new Sensor();
+
+        FromProcessMeasurement<IMemoryMeasurement> MemoryMeasurementLast;
 
 		readonly SimpleInterfaceServerDispatcher SensorServerDispatcher = new SimpleInterfaceServerDispatcher
 		{
@@ -43,7 +45,7 @@ namespace Sanderling.ABot.Exe
 
 		void MeasurementMemoryTake(int processId, Int64 measurementBeginTimeMinMilli)
 		{
-			var measurement = SensorServerDispatcher.InterfaceAppManager.MeasurementTake(processId, measurementBeginTimeMinMilli);
+			var measurement = sensor.MeasurementTake(processId, measurementBeginTimeMinMilli);
 
 			if (null == measurement)
 				return;
