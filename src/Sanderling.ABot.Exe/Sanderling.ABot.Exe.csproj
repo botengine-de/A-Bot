@@ -91,6 +91,9 @@
     <Reference Include="Sanderling.Interface">
       <HintPath>..\..\lib\Sanderling.Interface.dll</HintPath>
     </Reference>
+    <Reference Include="Sanderling.MemoryReading">
+      <HintPath>..\..\lib\Sanderling.MemoryReading.dll</HintPath>
+    </Reference>
     <Reference Include="Sanderling.UI">
       <HintPath>..\..\lib\Sanderling.UI.dll</HintPath>
     </Reference>
