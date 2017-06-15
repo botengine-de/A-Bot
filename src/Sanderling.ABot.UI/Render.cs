@@ -43,6 +43,7 @@ namespace Sanderling.ABot.UI
 
 		static public string RenderBotStepToUIText(this PropertyGenTimespanInt64<BotStepResult> stepResultAtTimeMilli) =>
 			null == stepResultAtTimeMilli ? null :
+			stepResultAtTimeMilli?.Value?.OutputListTaskPath?.Count() + " leaves " +
 			TimeAgeMilliToUIText(Bot.Bot.GetTimeMilli() - stepResultAtTimeMilli?.Begin) +
 			Environment.NewLine +
 			RenderBotStepToUIText(stepResultAtTimeMilli.Value);
