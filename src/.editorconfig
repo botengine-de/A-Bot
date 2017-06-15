@@ -1,0 +1,9 @@
+[*.cs]
+indent_style = tab
+indent_size = 4
+tab_size = 4
+
+[*.xaml]
+indent_style = tab
+indent_size = 4
+tab_size = 4
