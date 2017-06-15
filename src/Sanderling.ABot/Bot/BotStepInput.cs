@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Sanderling.ABot.Bot
 {
@@ -18,5 +19,7 @@ namespace Sanderling.ABot.Bot
 		public StringAtPath ConfigSerial;
 
 		public MotionResult[] StepLastMotionResult;
+
+		public IEnumerable<IBotTask> RootTaskListComponentOverride;
 	}
 }

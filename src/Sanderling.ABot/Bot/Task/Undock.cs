@@ -11,17 +11,17 @@ namespace Sanderling.ABot.Bot.Task
 
 		public IEnumerable<IBotTask> Component => null;
 
-		public MotionParam Motion
+		public IEnumerable<MotionParam> Effects
 		{
 			get
 			{
 				if (MemoryMeasurement?.IsUnDocking ?? false)
-					return null;
+					yield break;
 
 				if (!(MemoryMeasurement?.IsDocked ?? false))
-					return null;
+					yield break;
 
-				return MemoryMeasurement?.WindowStation?.FirstOrDefault()?.UndockButton?.MouseClick(BotEngine.Motor.MouseButtonIdEnum.Left);
+				yield return MemoryMeasurement?.WindowStation?.FirstOrDefault()?.UndockButton?.MouseClick(BotEngine.Motor.MouseButtonIdEnum.Left);
 			}
 		}
 	}

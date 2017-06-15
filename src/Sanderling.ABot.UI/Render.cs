@@ -20,7 +20,7 @@ namespace Sanderling.ABot.UI
 		static public string RenderBotLeafTaskTypeToString(IBotTask leafTask) =>
 			new[]
 			{
-				leafTask?.Motion == null ? null: "Motion",
+				leafTask.ContainsEffect() ? "Effect" : null,
 				leafTask is DiagnosticTask ? "Diagnostic: \"" + (leafTask as DiagnosticTask)?.MessageText + "\"" : null,
 			}.WhereNotDefault().FirstOrDefault();
 

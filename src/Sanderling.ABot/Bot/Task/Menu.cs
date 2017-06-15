@@ -49,7 +49,7 @@ namespace Sanderling.ABot.Bot.Task
 			return true;
 		}
 
-		public MotionParam Motion
+		public IEnumerable<MotionParam> Effects
 		{
 			get
 			{
@@ -60,7 +60,7 @@ namespace Sanderling.ABot.Bot.Task
 				var rootUIElement = RootUIElement;
 
 				if (null == rootUIElement)
-					return null;
+					yield break;
 
 				IMenuEntry menuEntryToContinue = null;
 
@@ -92,7 +92,7 @@ namespace Sanderling.ABot.Bot.Task
 					}
 				}
 
-				return
+				yield return
 					menuEntryToContinue?.MouseClick(BotEngine.Motor.MouseButtonIdEnum.Left) ??
 					RootUIElement?.MouseClick(BotEngine.Motor.MouseButtonIdEnum.Right);
 			}

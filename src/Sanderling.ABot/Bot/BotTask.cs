@@ -7,13 +7,16 @@ namespace Sanderling.ABot.Bot
 	{
 		IEnumerable<IBotTask> Component { get; }
 
-		MotionParam Motion { get; }
+		/// <summary>
+		/// Effects to apply to the eve online client.
+		/// </summary>
+		IEnumerable<MotionParam> Effects { get; }
 	}
 
 	public class BotTask : IBotTask
 	{
 		public IEnumerable<IBotTask> Component { set; get; }
 
-		public MotionParam Motion { set; get; }
+		public IEnumerable<MotionParam> Effects { set; get; }
 	}
 }

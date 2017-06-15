@@ -32,15 +32,18 @@ namespace Sanderling.ABot.Bot
 			AttackPriorityIndexForOverviewEntryEWar(bot?.OverviewMemory?.SetEWarTypeFromOverviewEntry(entry));
 
 		static public bool ShouldBeIncludedInStepOutput(this IBotTask task) =>
-			null != task?.Motion || task is DiagnosticTask;
+			null != task?.Effects || task is DiagnosticTask;
 
-		static public bool LastHasMotion(this IEnumerable<IBotTask> listTask) =>
-			null != listTask?.LastOrDefault()?.Motion;
+		static public bool LastContainsEffect(this IEnumerable<IBotTask> listTask) =>
+			listTask?.LastOrDefault()?.ContainsEffect() ?? false;
+
+		static public bool ContainsEffect(this IBotTask task) =>
+			0 < task?.Effects?.Count();
 
 		static public IEnumerable<IBotTask[]> TakeSubsequenceWhileUnwantedInferenceRuledOut(this IEnumerable<IBotTask[]> listTaskPath) =>
 			listTaskPath
 			?.EnumerateSubsequencesStartingWithFirstElement()
-			?.OrderBy(subsequenceTaskPath => 1 == subsequenceTaskPath?.Count(BotExtension.LastHasMotion))
+			?.OrderBy(subsequenceTaskPath => 1 == subsequenceTaskPath?.Count(BotExtension.LastContainsEffect))
 			?.LastOrDefault();
 
 		static public IUIElementText TitleElementText(this IModuleButtonTooltip tooltip)

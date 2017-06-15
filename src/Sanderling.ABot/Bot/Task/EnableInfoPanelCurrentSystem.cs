@@ -11,14 +11,14 @@ namespace Sanderling.ABot.Bot.Task
 
 		public IEnumerable<IBotTask> Component => null;
 
-		public MotionParam Motion
+		public IEnumerable<MotionParam> Effects
 		{
 			get
 			{
 				if (null != MemoryMeasurement?.InfoPanelCurrentSystem)
-					return null;
+					yield break;
 
-				return MemoryMeasurement?.InfoPanelButtonCurrentSystem?.MouseClick(MouseButtonIdEnum.Left);
+				yield return MemoryMeasurement?.InfoPanelButtonCurrentSystem?.MouseClick(MouseButtonIdEnum.Left);
 			}
 		}
 	}

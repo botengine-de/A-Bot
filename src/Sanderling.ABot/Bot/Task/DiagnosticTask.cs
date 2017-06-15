@@ -7,7 +7,7 @@ namespace Sanderling.ABot.Bot.Task
 	{
 		public IEnumerable<IBotTask> Component => null;
 
-		public MotionParam Motion => null;
+		public IEnumerable<MotionParam> Effects => null;
 
 		public string MessageText;
 	}

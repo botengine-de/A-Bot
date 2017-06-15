@@ -28,6 +28,6 @@ namespace Sanderling.ABot.Bot.Task
 			}
 		}
 
-		public MotionParam Motion => null;
+		public IEnumerable<MotionParam> Effects => null;
 	}
 }

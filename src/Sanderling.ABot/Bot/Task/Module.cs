@@ -45,16 +45,16 @@ namespace Sanderling.ABot.Bot.Task
 
 		public IEnumerable<IBotTask> Component => null;
 
-		public MotionParam Motion
+		public IEnumerable<MotionParam> Effects
 		{
 			get
 			{
 				var toggleKey = module?.TooltipLast?.Value?.ToggleKey;
 
 				if (0 < toggleKey?.Length)
-					return toggleKey?.KeyboardPressCombined();
+					yield return toggleKey?.KeyboardPressCombined();
 
-				return module?.MouseClick(MouseButtonIdEnum.Left);
+				yield return module?.MouseClick(MouseButtonIdEnum.Left);
 			}
 		}
 	}

@@ -101,16 +101,14 @@ namespace Sanderling.ABot.Bot
 
 				foreach (var taskPath in outputListTaskPath.EmptyIfNull())
 				{
-					var taskMotionParam = taskPath?.LastOrDefault()?.Motion;
-
-					if (null == taskMotionParam)
-						continue;
-
-					listMotion.Add(new MotionRecommendation
+					foreach (var effectParam in (taskPath?.LastOrDefault()?.Effects).EmptyIfNull().WhereNotDefault())
 					{
-						Id = motionId++,
-						MotionParam = taskMotionParam,
-					});
+						listMotion.Add(new MotionRecommendation
+						{
+							Id = motionId++,
+							MotionParam = effectParam,
+						});
+					}
 				}
 			}
 			catch (Exception e)
@@ -134,7 +132,11 @@ namespace Sanderling.ABot.Bot
 			return stepResult;
 		}
 
-		IEnumerable<IBotTask> RootTaskListComponent()
+		IEnumerable<IBotTask> RootTaskListComponent() =>
+			StepLastInput?.RootTaskListComponentOverride ??
+			RootTaskListComponentDefault();
+
+		IEnumerable<IBotTask> RootTaskListComponentDefault()
 		{
 			yield return new BotTask { Component = EnumerateConfigDiagnostics() };
 
@@ -148,7 +150,7 @@ namespace Sanderling.ABot.Bot
 
 			var moduleUnknown = MemoryMeasurementAccu?.ShipUiModule?.FirstOrDefault(module => null == module?.TooltipLast?.Value);
 
-			yield return new BotTask { Motion = moduleUnknown?.MouseMove() };
+			yield return new BotTask { Effects = new[] { moduleUnknown?.MouseMove() } };
 
 			if (!saveShipTask.AllowRoam)
 				yield break;
