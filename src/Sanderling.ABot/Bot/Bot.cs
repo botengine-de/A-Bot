@@ -101,7 +101,7 @@ namespace Sanderling.ABot.Bot
 
 				foreach (var taskPath in outputListTaskPath.EmptyIfNull())
 				{
-					foreach (var effectParam in (taskPath?.LastOrDefault()?.Effects).EmptyIfNull().WhereNotDefault())
+					foreach (var effectParam in (taskPath?.LastOrDefault()?.ApplicableEffects()).EmptyIfNull())
 					{
 						listMotion.Add(new MotionRecommendation
 						{

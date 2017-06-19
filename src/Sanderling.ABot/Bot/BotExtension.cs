@@ -2,6 +2,7 @@
 using BotEngine.Common;
 using Sanderling.ABot.Bot.Task;
 using Sanderling.Interface.MemoryStruct;
+using Sanderling.Motor;
 using Sanderling.Parse;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,13 +33,16 @@ namespace Sanderling.ABot.Bot
 			AttackPriorityIndexForOverviewEntryEWar(bot?.OverviewMemory?.SetEWarTypeFromOverviewEntry(entry));
 
 		static public bool ShouldBeIncludedInStepOutput(this IBotTask task) =>
-			null != task?.Effects || task is DiagnosticTask;
+			(task?.ContainsEffect() ?? false) || task is DiagnosticTask;
 
 		static public bool LastContainsEffect(this IEnumerable<IBotTask> listTask) =>
 			listTask?.LastOrDefault()?.ContainsEffect() ?? false;
 
+		static public IEnumerable<MotionParam> ApplicableEffects(this IBotTask task) =>
+			task?.Effects?.WhereNotDefault();
+
 		static public bool ContainsEffect(this IBotTask task) =>
-			0 < task?.Effects?.Count();
+			0 < task?.ApplicableEffects()?.Count();
 
 		static public IEnumerable<IBotTask[]> TakeSubsequenceWhileUnwantedInferenceRuledOut(this IEnumerable<IBotTask[]> listTaskPath) =>
 			listTaskPath
