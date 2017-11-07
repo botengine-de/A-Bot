@@ -46,6 +46,7 @@ namespace Sanderling.ABot.Bot
 		}
 
 		public Int64? ToggleLastAgeStepCountFromModule(Accumulation.IShipUiModule module) =>
+			module == null ? null :
 			stepIndex - ToggleLastStepIndexFromModule?.TryGetValueNullable(module);
 
 		IEnumerable<IBotTask[]> StepOutputListTaskPath() =>
