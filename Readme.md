@@ -12,6 +12,7 @@ A-Bot is an eve online anomaly ratting bot.
 ### Get started ###
 Follow these steps to use the bot:
 
+* Make sure that Microsoft .NET Framework 4.6.1 or newer is installed on your system. This can be downloaded from https://www.microsoft.com/download/details.aspx?id=49982.
 * download the `A-Bot.exe` file of the latest release from the releases section.
 * set the language of the eve online client to english.
 * start an eve online client and login to the game.
