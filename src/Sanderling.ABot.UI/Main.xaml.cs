@@ -19,15 +19,6 @@ namespace Sanderling.ABot.UI
 
 		public bool IsBotMotionEnabled => ToggleButtonMotionEnable?.ButtonRecz?.IsChecked ?? false;
 
-		public void ConfigFromModelToView(ExeConfig config) =>
-			Interface.LicenseView?.LicenseClientConfigViewModel?.PropagateFromClrMemberToDependencyProperty(config?.LicenseClient?.CompletedWithDefault());
-
-		public ExeConfig ConfigFromViewToModel() =>
-			new ExeConfig()
-			{
-				LicenseClient = Interface.LicenseView?.LicenseClientConfigViewModel?.PropagateFromDependencyPropertyToClrMember(),
-			};
-
 		public Main()
 		{
 			InitializeComponent();
