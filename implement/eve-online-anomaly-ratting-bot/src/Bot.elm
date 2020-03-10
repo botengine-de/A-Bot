@@ -1,12 +1,14 @@
-{- EVE Online anomaly ratting bot version 2020-02-18
+{- EVE Online anomaly ratting bot version 2020-03-10
 
    Setup instructions for the EVE Online client:
    + Set the UI language to English.
    + Enable the info panel 'System info'.
    + Undock, open probe scanner, overview window and drones window.
    + Set the Overview window to sort objects in space by distance with the nearest entry at the top.
-   + In the ship UI, arrange the modules: The modules to use in combat must appear all in the upper row. Place modules which should always be active in a second row.
-   + In the ship UI, hide passive modules by disabling the check-box `Display Passive Modules`.
+   + In the ship UI, arrange the modules:
+     + Place to use in combat (to activate on targets) in the top row.
+     + Place modules that should always be active in the middle row.
+     + Hide passive modules by disabling the check-box `Display Passive Modules`.
    + Configure the keyboard key 'W' to make the ship orbit.
 -}
 {-
@@ -35,6 +37,7 @@ import EveOnline.MemoryReading
         , maybeNothingFromCanNotSeeIt
         , maybeVisibleAndThen
         )
+import EveOnline.ParseUserInterface
 import EveOnline.VolatileHostInterface as VolatileHostInterface exposing (MouseButton(..), effectMouseClickAtLocation)
 import Set
 
@@ -611,44 +614,20 @@ unpackToDecisionStagesDescriptionsAndLeaf node =
 
 shipUIModulesToActivateOnTarget : ParsedUserInterface -> List ShipUIModule
 shipUIModulesToActivateOnTarget =
-    shipUIModulesRows >> List.head >> Maybe.withDefault []
+    .shipUI
+        >> maybeNothingFromCanNotSeeIt
+        >> Maybe.andThen EveOnline.ParseUserInterface.groupShipUIModulesIntoRows
+        >> Maybe.map .top
+        >> Maybe.withDefault []
 
 
 shipUIModulesToActivateAlways : ParsedUserInterface -> List ShipUIModule
 shipUIModulesToActivateAlways =
-    shipUIModulesRows >> List.drop 1 >> List.head >> Maybe.withDefault []
-
-
-shipUiModules : ParsedUserInterface -> List ShipUIModule
-shipUiModules =
-    .shipUI >> maybeNothingFromCanNotSeeIt >> Maybe.map .modules >> Maybe.withDefault []
-
-
-{-| Groups the modules into rows.
--}
-shipUIModulesRows : ParsedUserInterface -> List (List ShipUIModule)
-shipUIModulesRows =
-    let
-        putModulesInSameGroup moduleA moduleB =
-            let
-                distanceY =
-                    (moduleA.uiNode.totalDisplayRegion |> centerFromDisplayRegion).y
-                        - (moduleB.uiNode.totalDisplayRegion |> centerFromDisplayRegion).y
-            in
-            abs distanceY < 10
-    in
-    shipUiModules
-        >> List.sortBy (.uiNode >> .totalDisplayRegion >> .y)
-        >> List.foldl
-            (\shipModule groups ->
-                case groups |> List.filter (List.any (putModulesInSameGroup shipModule)) |> List.head of
-                    Nothing ->
-                        groups ++ [ [ shipModule ] ]
-
-                    Just matchingGroup ->
-                        (groups |> listRemove matchingGroup) ++ [ matchingGroup ++ [ shipModule ] ]
-            )
-            []
+    .shipUI
+        >> maybeNothingFromCanNotSeeIt
+        >> Maybe.andThen EveOnline.ParseUserInterface.groupShipUIModulesIntoRows
+        >> Maybe.map .middle
+        >> Maybe.withDefault []
 
 
 {-| Returns the menu entry containing the string from the parameter `textToSearch`.
@@ -707,8 +686,3 @@ listElementAtWrappedIndex indexToWrap list =
 
     else
         list |> List.drop (indexToWrap |> modBy (list |> List.length)) |> List.head
-
-
-listRemove : element -> List element -> List element
-listRemove elementToRemove =
-    List.filter ((/=) elementToRemove)
