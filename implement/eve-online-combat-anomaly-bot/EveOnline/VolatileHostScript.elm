@@ -11,7 +11,7 @@ setupScript =
 #r "sha256:831EF0489D9FA85C34C95F0670CC6393D1AD9548EE708E223C1AD87B51F7C7B3"
 #r "sha256:B9B4E633EA6C728BAD5F7CBBEF7F8B842F7E10181731DBE5EC3CD995A6F60287"
 #r "sha256:81110D44256397F0F3C572A20CA94BB4C669E5DE89F9348ABAD263FBD81C54B9"
-#r "sha256:ABE3DA8D2906BFA8ADC5CF290B0D3341D8E2103D5DA45262F3AB2C6D86E9C9AF"
+#r "sha256:1CE5129364865C5D50DC4ED71E330D3FF4F04054541E461ABDFE543D254307E2"
 
 #r "mscorlib"
 #r "netstandard"
@@ -78,9 +78,9 @@ class Request
 
     public class EffectOnWindowStructure
     {
-        public SimpleMouseClickAtLocation simpleMouseClickAtLocation;
+        public MouseMoveToStructure mouseMoveTo;
 
-        public SimpleDragAndDrop simpleDragAndDrop;
+        public SimpleMouseClickAtLocation simpleMouseClickAtLocation;
 
         public KeyboardKey keyDown;
 
@@ -92,20 +92,16 @@ class Request
         public int virtualKeyCode;
     }
 
+    public class MouseMoveToStructure
+    {
+        public Location2d location;
+    }
+
     public class SimpleMouseClickAtLocation
     {
         public Location2d location;
 
         public MouseButton mouseButton;
-    }
-
-    public class SimpleDragAndDrop
-    {
-        public Location2d startLocation;
-
-        public MouseButton mouseButton;
-
-        public Location2d endLocation;
     }
 
     public class Location2d
@@ -304,7 +300,33 @@ void ExecuteEffectOnWindow(
     if (bringWindowToForeground)
         EnsureWindowIsForeground(windowHandle);
 
-    //  TODO: Consolidate simpleMouseClickAtLocation and simpleDragAndDrop?
+    //  TODO: Consolidate mouseMoveTo and simpleMouseClickAtLocation?
+
+    if (effectOnWindow?.mouseMoveTo != null)
+    {
+        //  Build motion description based on https://github.com/Arcitectus/Sanderling/blob/ada11c9f8df2367976a6bcc53efbe9917107bfa7/src/Sanderling/Sanderling/Motor/Extension.cs#L24-L131
+
+        var mousePosition = new Bib3.Geometrik.Vektor2DInt(
+            effectOnWindow.mouseMoveTo.location.x,
+            effectOnWindow.mouseMoveTo.location.y);
+
+        var mouseButtons = new BotEngine.Motor.MouseButtonIdEnum[]{};
+
+        var windowMotor = new Sanderling.Motor.WindowMotor(windowHandle);
+
+        var motionSequence = new BotEngine.Motor.Motion[]{
+            new BotEngine.Motor.Motion(
+                mousePosition: mousePosition,
+                mouseButtonDown: mouseButtons,
+                windowToForeground: bringWindowToForeground),
+            new BotEngine.Motor.Motion(
+                mousePosition: mousePosition,
+                mouseButtonUp: mouseButtons,
+                windowToForeground: bringWindowToForeground),
+        };
+
+        windowMotor.ActSequenceMotion(motionSequence);
+    }
 
     if (effectOnWindow?.simpleMouseClickAtLocation != null)
     {
@@ -339,59 +361,46 @@ void ExecuteEffectOnWindow(
         windowMotor.ActSequenceMotion(motionSequence);
     }
 
-    if (effectOnWindow?.simpleDragAndDrop != null)
-    {
-        //  Build motion description based on https://github.com/Arcitectus/Sanderling/blob/ada11c9f8df2367976a6bcc53efbe9917107bfa7/src/Sanderling/Sanderling/Motor/Extension.cs#L24-L131
-
-        var startMousePosition = new Bib3.Geometrik.Vektor2DInt(
-            effectOnWindow.simpleDragAndDrop.startLocation.x,
-            effectOnWindow.simpleDragAndDrop.startLocation.y);
-
-        var endMousePosition = new Bib3.Geometrik.Vektor2DInt(
-            effectOnWindow.simpleDragAndDrop.endLocation.x,
-            effectOnWindow.simpleDragAndDrop.endLocation.y);
-
-        var mouseButton =
-            effectOnWindow.simpleDragAndDrop.mouseButton == Request.MouseButton.right
-            ? BotEngine.Motor.MouseButtonIdEnum.Right : BotEngine.Motor.MouseButtonIdEnum.Left;
-
-        var mouseButtons = new BotEngine.Motor.MouseButtonIdEnum[]
-        {
-            mouseButton,
-        };
-
-        var windowMotor = new Sanderling.Motor.WindowMotor(windowHandle);
-
-        var motionSequence = new BotEngine.Motor.Motion[]{
-
-            new BotEngine.Motor.Motion(
-                mousePosition: startMousePosition,
-                mouseButtonDown: mouseButtons,
-                windowToForeground: bringWindowToForeground),
-
-            new BotEngine.Motor.Motion(
-                mousePosition: endMousePosition,
-                mouseButtonDown: new BotEngine.Motor.MouseButtonIdEnum[]{},
-                windowToForeground: bringWindowToForeground),
-
-            new BotEngine.Motor.Motion(
-                mousePosition: endMousePosition,
-                mouseButtonUp: mouseButtons,
-                windowToForeground: bringWindowToForeground),
-        };
-
-        windowMotor.ActSequenceMotion(motionSequence);
-    }
-
     if (effectOnWindow?.keyDown != null)
     {
-        new WindowsInput.InputSimulator().Keyboard.KeyDown((WindowsInput.Native.VirtualKeyCode)effectOnWindow.keyDown.virtualKeyCode);
+        var virtualKeyCode = (WindowsInput.Native.VirtualKeyCode)effectOnWindow.keyDown.virtualKeyCode;
+
+        (MouseActionForKeyUpOrDown(keyCode: virtualKeyCode, buttonUp: false)
+        ??
+        (() => new WindowsInput.InputSimulator().Keyboard.KeyDown(virtualKeyCode)))();
     }
 
     if (effectOnWindow?.keyUp != null)
     {
-        new WindowsInput.InputSimulator().Keyboard.KeyUp((WindowsInput.Native.VirtualKeyCode)effectOnWindow.keyUp.virtualKeyCode);
+        var virtualKeyCode = (WindowsInput.Native.VirtualKeyCode)effectOnWindow.keyUp.virtualKeyCode;
+
+        (MouseActionForKeyUpOrDown(keyCode: virtualKeyCode, buttonUp: true)
+        ??
+        (() => new WindowsInput.InputSimulator().Keyboard.KeyUp(virtualKeyCode)))();
     }
+}
+
+static System.Action MouseActionForKeyUpOrDown(WindowsInput.Native.VirtualKeyCode keyCode, bool buttonUp)
+{
+    WindowsInput.IMouseSimulator mouseSimulator() => new WindowsInput.InputSimulator().Mouse;
+
+    var method = keyCode switch
+    {
+        WindowsInput.Native.VirtualKeyCode.LBUTTON =>
+            buttonUp ?
+            (System.Func<WindowsInput.IMouseSimulator>)mouseSimulator().LeftButtonUp
+            : mouseSimulator().LeftButtonDown,
+        WindowsInput.Native.VirtualKeyCode.RBUTTON =>
+            buttonUp ?
+            (System.Func<WindowsInput.IMouseSimulator>)mouseSimulator().RightButtonUp
+            : mouseSimulator().RightButtonDown,
+        _ => null
+    };
+
+    if (method != null)
+        return () => method();
+
+    return null;
 }
 
 static void EnsureWindowIsForeground(
