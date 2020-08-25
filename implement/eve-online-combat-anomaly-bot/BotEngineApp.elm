@@ -1,7 +1,8 @@
-{- EVE Online combat anomaly bot version 2020-07-09
+{- EVE Online combat anomaly bot version 2020-08-25
    This bot uses the probe scanner to warp to combat anomalies and kills rats using drones and weapon modules.
 
    Setup instructions for the EVE Online client:
+
    + Set the UI language to English.
    + Undock, open probe scanner, overview window and drones window.
    + Set the Overview window to sort objects in space by distance with the nearest entry at the top.
@@ -12,12 +13,18 @@
    + Configure the keyboard key 'W' to make the ship orbit.
 
    ## Configuration Settings
+
    All settings are optional; you only need them in case the defaults don't fit your use-case.
 
    + `anomaly-name` : Choose the name of anomalies to take. You can use this setting multiple times to select multiple names.
+   + `hide-when-neutral-in-local` : Set this to 'yes' to make the bot dock in a station or structure when a neutral or hostile appears in the 'local' chat.
 
-   Here is an example of a complete app-settings string:
-   --app-settings="anomaly-name=Drone Patrol,anomaly-name=Drone Horde"
+   When using more than one setting, start a new line for each setting in the text input field.
+   Here is an example of a complete settings string:
+
+   anomaly-name = Drone Patrol
+   anomaly-name = Drone Horde
+   hide-when-neutral-in-local = yes
 -}
 {-
    app-catalog-tags:eve-online,anomaly,ratting
@@ -31,11 +38,11 @@ module BotEngineApp exposing
     , processEvent
     )
 
-import BotEngine.Interface_To_Host_20200610 as InterfaceToHost
+import BotEngine.Interface_To_Host_20200824 as InterfaceToHost
 import Common.AppSettings as AppSettings
 import Common.Basics exposing (listElementAtWrappedIndex)
 import Common.DecisionTree exposing (describeBranch, endDecisionPath)
-import Common.EffectOnWindow exposing (MouseButton(..))
+import Common.EffectOnWindow as EffectOnWindow exposing (MouseButton(..))
 import Dict
 import EveOnline.AppFramework
     exposing
@@ -45,53 +52,59 @@ import EveOnline.AppFramework
         , ReadingFromGameClient
         , SeeUndockingComplete
         , ShipModulesMemory
+        , UseContextMenuCascadeNode(..)
         , actWithoutFurtherReadings
         , askForHelpToGetUnstuck
         , branchDependingOnDockedOrInSpace
         , clickOnUIElement
+        , ensureInfoPanelLocationInfoIsExpanded
         , getEntropyIntFromReadingFromGameClient
+        , localChatWindowFromUserInterface
         , menuCascadeCompleted
+        , pickEntryFromLastContextMenuInCascade
+        , shipUIIndicatesShipIsWarpingOrJumping
         , useContextMenuCascade
+        , useContextMenuCascadeOnListSurroundingsButton
         , useContextMenuCascadeOnOverviewEntry
         , useMenuEntryWithTextContaining
+        , useMenuEntryWithTextContainingFirstOf
         , useMenuEntryWithTextEqual
         , waitForProgressInGame
         )
 import EveOnline.ParseUserInterface
     exposing
-        ( MaybeVisible(..)
-        , OverviewWindowEntry
+        ( OverviewWindowEntry
         , ShipUI
         , ShipUIModuleButton
-        , centerFromDisplayRegion
-        , maybeNothingFromCanNotSeeIt
-        , maybeVisibleAndThen
         )
-import EveOnline.VolatileHostInterface as VolatileHostInterface
 import Set
 
 
 defaultBotSettings : BotSettings
 defaultBotSettings =
-    { anomalyNames = []
+    { hideWhenNeutralInLocal = AppSettings.No
+    , anomalyNames = []
     , maxTargetCount = 3
-    , botStepDelayMilliseconds = 1300
+    , botStepDelayMilliseconds = 1400
     }
 
 
 parseBotSettings : String -> Result String BotSettings
 parseBotSettings =
-    AppSettings.parseSimpleCommaSeparatedList
+    AppSettings.parseSimpleList { assignmentsSeparators = [ ",", "\n" ] }
         {- Names to support with the `--app-settings`, see <https://github.com/Viir/bots/blob/master/guide/how-to-run-a-bot.md#configuring-a-bot> -}
-        ([ ( "anomaly-name"
-           , AppSettings.ValueTypeString
+        ([ ( "hide-when-neutral-in-local"
+           , AppSettings.valueTypeYesOrNo
+                (\hide -> \settings -> { settings | hideWhenNeutralInLocal = hide })
+           )
+         , ( "anomaly-name"
+           , AppSettings.valueTypeString
                 (\anomalyName ->
-                    \settings ->
-                        { settings | anomalyNames = anomalyName :: settings.anomalyNames }
+                    \settings -> { settings | anomalyNames = String.trim anomalyName :: settings.anomalyNames }
                 )
            )
          , ( "bot-step-delay"
-           , AppSettings.ValueTypeInteger (\delay settings -> { settings | botStepDelayMilliseconds = delay })
+           , AppSettings.valueTypeInteger (\delay settings -> { settings | botStepDelayMilliseconds = delay })
            )
          ]
             |> Dict.fromList
@@ -99,8 +112,14 @@ parseBotSettings =
         defaultBotSettings
 
 
+goodStandingPatterns : List String
+goodStandingPatterns =
+    [ "good standing", "excellent standing", "is in your" ]
+
+
 type alias BotSettings =
-    { anomalyNames : List String
+    { hideWhenNeutralInLocal : AppSettings.YesOrNo
+    , anomalyNames : List String
     , maxTargetCount : Int
     , botStepDelayMilliseconds : Int
     }
@@ -113,6 +132,8 @@ type alias BotState =
 type alias BotMemory =
     { lastDockedStationNameFromInfoPanel : Maybe String
     , shipModules : ShipModulesMemory
+    , shipWarpingInLastReading : Maybe Bool
+    , visitedAnomalies : Dict.Dict String { otherPilotsFoundOnArrival : List String }
     }
 
 
@@ -155,17 +176,160 @@ probeScanResultsRepresentsMatchingAnomaly settings probeScanResult =
 
 anomalyBotDecisionRoot : BotDecisionContext -> DecisionPathNode
 anomalyBotDecisionRoot context =
-    branchDependingOnDockedOrInSpace
-        { ifDocked = askForHelpToGetUnstuck
-        , ifSeeShipUI = always Nothing
-        , ifUndockingComplete = decideNextActionWhenInSpace context
-        }
-        context.readingFromGameClient
+    generalSetupInUserInterface context.readingFromGameClient
+        |> Maybe.withDefault
+            (branchDependingOnDockedOrInSpace
+                { ifDocked =
+                    continueIfShouldHide
+                        { ifShouldHide =
+                            describeBranch "Stay docked." waitForProgressInGame
+                        }
+                        context
+                        |> Maybe.withDefault (undockUsingStationWindow context)
+                , ifSeeShipUI =
+                    always
+                        (continueIfShouldHide
+                            { ifShouldHide =
+                                returnDronesToBay context.readingFromGameClient
+                                    |> Maybe.withDefault
+                                        (describeBranch
+                                            "Dock to station or structure."
+                                            (dockAtRandomStationOrStructure context.readingFromGameClient)
+                                        )
+                            }
+                            context
+                        )
+                , ifUndockingComplete = decideNextActionWhenInSpace context
+                }
+                context.readingFromGameClient
+            )
+
+
+generalSetupInUserInterface : ReadingFromGameClient -> Maybe DecisionPathNode
+generalSetupInUserInterface readingFromGameClient =
+    [ closeMessageBox, ensureInfoPanelLocationInfoIsExpanded ]
+        |> List.filterMap
+            (\maybeSetupDecisionFromGameReading ->
+                maybeSetupDecisionFromGameReading readingFromGameClient
+            )
+        |> List.head
+
+
+closeMessageBox : ReadingFromGameClient -> Maybe DecisionPathNode
+closeMessageBox readingFromGameClient =
+    readingFromGameClient.messageBoxes
+        |> List.head
+        |> Maybe.map
+            (\messageBox ->
+                describeBranch "I see a message box to close."
+                    (let
+                        buttonCanBeUsedToClose =
+                            .mainText
+                                >> Maybe.map (String.trim >> String.toLower >> (\buttonText -> [ "close", "ok" ] |> List.member buttonText))
+                                >> Maybe.withDefault False
+                     in
+                     case messageBox.buttons |> List.filter buttonCanBeUsedToClose |> List.head of
+                        Nothing ->
+                            describeBranch "I see no way to close this message box." askForHelpToGetUnstuck
+
+                        Just buttonToUse ->
+                            endDecisionPath
+                                (actWithoutFurtherReadings
+                                    ( "Click on button '" ++ (buttonToUse.mainText |> Maybe.withDefault "") ++ "'."
+                                    , buttonToUse.uiNode |> clickOnUIElement MouseButtonLeft
+                                    )
+                                )
+                    )
+            )
+
+
+continueIfShouldHide : { ifShouldHide : DecisionPathNode } -> BotDecisionContext -> Maybe DecisionPathNode
+continueIfShouldHide config context =
+    case
+        context.eventContext |> EveOnline.AppFramework.secondsToSessionEnd |> Maybe.andThen (nothingFromIntIfGreaterThan 200)
+    of
+        Just secondsToSessionEnd ->
+            Just
+                (describeBranch ("Session ends in " ++ (secondsToSessionEnd |> String.fromInt) ++ " seconds.")
+                    config.ifShouldHide
+                )
+
+        Nothing ->
+            if (context |> botSettingsFromDecisionContext).hideWhenNeutralInLocal /= AppSettings.Yes then
+                Nothing
+
+            else
+                case context.readingFromGameClient |> localChatWindowFromUserInterface of
+                    Nothing ->
+                        Just (describeBranch "I don't see the local chat window." askForHelpToGetUnstuck)
+
+                    Just localChatWindow ->
+                        let
+                            chatUserHasGoodStanding chatUser =
+                                goodStandingPatterns
+                                    |> List.any
+                                        (\goodStandingPattern ->
+                                            chatUser.standingIconHint
+                                                |> Maybe.map (String.toLower >> String.contains goodStandingPattern)
+                                                |> Maybe.withDefault False
+                                        )
+
+                            subsetOfUsersWithNoGoodStanding =
+                                localChatWindow.userlist
+                                    |> Maybe.map .visibleUsers
+                                    |> Maybe.withDefault []
+                                    |> List.filter (chatUserHasGoodStanding >> not)
+                        in
+                        if 1 < (subsetOfUsersWithNoGoodStanding |> List.length) then
+                            Just (describeBranch "There is an enemy or neutral in local chat." config.ifShouldHide)
+
+                        else
+                            Nothing
+
+
+{-| 2020-07-11 Discovery by Viktor:
+The entries for structures in the menu from the SurroundingsButton can be nested one level deeper than the ones for stations.
+In other words, not all structures appear directly under the "structures" entry.
+-}
+dockAtRandomStationOrStructure : ReadingFromGameClient -> DecisionPathNode
+dockAtRandomStationOrStructure readingFromGameClient =
+    let
+        withTextContainingIgnoringCase textToSearch =
+            List.filter (.text >> String.toLower >> (==) (textToSearch |> String.toLower)) >> List.head
+
+        menuEntryIsSuitable menuEntry =
+            [ "cyno beacon", "jump gate" ]
+                |> List.any (\toAvoid -> menuEntry.text |> String.toLower |> String.contains toAvoid)
+                |> not
+
+        chooseNextMenuEntry =
+            { describeChoice = "Use 'Dock' if available or a random entry."
+            , chooseEntry =
+                pickEntryFromLastContextMenuInCascade
+                    (\menuEntries ->
+                        [ withTextContainingIgnoringCase "dock"
+                        , List.filter menuEntryIsSuitable
+                            >> Common.Basics.listElementAtWrappedIndex (getEntropyIntFromReadingFromGameClient readingFromGameClient)
+                        ]
+                            |> List.filterMap (\priority -> menuEntries |> priority)
+                            |> List.head
+                    )
+            }
+    in
+    useContextMenuCascadeOnListSurroundingsButton
+        (useMenuEntryWithTextContainingFirstOf [ "stations", "structures" ]
+            (MenuEntryWithCustomChoice chooseNextMenuEntry
+                (MenuEntryWithCustomChoice chooseNextMenuEntry
+                    (MenuEntryWithCustomChoice chooseNextMenuEntry MenuCascadeCompleted)
+                )
+            )
+        )
+        readingFromGameClient
 
 
 decideNextActionWhenInSpace : BotDecisionContext -> SeeUndockingComplete -> DecisionPathNode
 decideNextActionWhenInSpace context seeUndockingComplete =
-    if seeUndockingComplete.shipUI |> isShipWarpingOrJumping then
+    if seeUndockingComplete.shipUI |> shipUIIndicatesShipIsWarpingOrJumping then
         describeBranch "I see we are warping."
             ([ returnDronesToBay context.readingFromGameClient
              , readShipUIModuleButtonTooltips context
@@ -176,20 +340,45 @@ decideNextActionWhenInSpace context seeUndockingComplete =
             )
 
     else
-        case seeUndockingComplete |> shipUIModulesToActivateAlways |> List.filter (.isActive >> Maybe.withDefault False >> not) |> List.head of
+        case seeUndockingComplete |> shipUIModulesToActivateAlways |> List.filter (moduleIsActiveOrReloading >> not) |> List.head of
             Just inactiveModule ->
                 describeBranch "I see an inactive module in the middle row. Activate the module."
                     (endDecisionPath
                         (actWithoutFurtherReadings
-                            ( "Click on the module.", [ inactiveModule.uiNode |> clickOnUIElement MouseButtonLeft ] )
+                            ( "Click on the module.", inactiveModule.uiNode |> clickOnUIElement MouseButtonLeft )
                         )
                     )
 
             Nothing ->
-                combat context seeUndockingComplete enterAnomaly
+                combat context seeUndockingComplete (enterAnomaly context)
 
 
-combat : BotDecisionContext -> SeeUndockingComplete -> (BotDecisionContext -> DecisionPathNode) -> DecisionPathNode
+undockUsingStationWindow : BotDecisionContext -> DecisionPathNode
+undockUsingStationWindow context =
+    case context.readingFromGameClient.stationWindow of
+        Nothing ->
+            describeBranch "I do not see the station window." askForHelpToGetUnstuck
+
+        Just stationWindow ->
+            case stationWindow.undockButton of
+                Nothing ->
+                    case stationWindow.abortUndockButton of
+                        Nothing ->
+                            describeBranch "I do not see the undock button." askForHelpToGetUnstuck
+
+                        Just _ ->
+                            describeBranch "I see we are already undocking." waitForProgressInGame
+
+                Just undockButton ->
+                    endDecisionPath
+                        (actWithoutFurtherReadings
+                            ( "Click on the button to undock."
+                            , clickOnUIElement MouseButtonLeft undockButton
+                            )
+                        )
+
+
+combat : BotDecisionContext -> SeeUndockingComplete -> DecisionPathNode -> DecisionPathNode
 combat context seeUndockingComplete continueIfCombatComplete =
     let
         overviewEntriesToAttack =
@@ -236,7 +425,7 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                             (if overviewEntriesToAttack |> List.isEmpty then
                                                 returnDronesToBay context.readingFromGameClient
                                                     |> Maybe.withDefault
-                                                        (describeBranch "No drones to return." (continueIfCombatComplete context))
+                                                        (describeBranch "No drones to return." continueIfCombatComplete)
 
                                              else
                                                 describeBranch "Wait for target locking to complete." waitForProgressInGame
@@ -275,7 +464,7 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                             (endDecisionPath
                                                 (actWithoutFurtherReadings
                                                     ( "Click on the module."
-                                                    , [ inactiveModule.uiNode |> clickOnUIElement MouseButtonLeft ]
+                                                    , inactiveModule.uiNode |> clickOnUIElement MouseButtonLeft
                                                     )
                                                 )
                                             )
@@ -286,7 +475,7 @@ combat context seeUndockingComplete continueIfCombatComplete =
             "I see another pilot in the overview. Skip this anomaly."
             (returnDronesToBay context.readingFromGameClient
                 |> Maybe.withDefault
-                    (describeBranch "No drones to return." (continueIfCombatComplete context))
+                    (describeBranch "No drones to return." continueIfCombatComplete)
             )
 
     else
@@ -297,10 +486,10 @@ combat context seeUndockingComplete continueIfCombatComplete =
 enterAnomaly : BotDecisionContext -> DecisionPathNode
 enterAnomaly context =
     case context.readingFromGameClient.probeScannerWindow of
-        CanNotSeeIt ->
+        Nothing ->
             describeBranch "I do not see the probe scanner window." askForHelpToGetUnstuck
 
-        CanSee probeScannerWindow ->
+        Just probeScannerWindow ->
             let
                 matchingScanResults =
                     probeScannerWindow.scanResults
@@ -330,32 +519,27 @@ enterAnomaly context =
 
 ensureShipIsOrbiting : ShipUI -> OverviewWindowEntry -> Maybe DecisionPathNode
 ensureShipIsOrbiting shipUI overviewEntryToOrbit =
-    if (shipUI.indication |> maybeVisibleAndThen .maneuverType) == CanSee EveOnline.ParseUserInterface.ManeuverOrbit then
+    if (shipUI.indication |> Maybe.andThen .maneuverType) == Just EveOnline.ParseUserInterface.ManeuverOrbit then
         Nothing
 
     else
         Just
             (endDecisionPath
                 (actWithoutFurtherReadings
-                    ( "Click on the overview entry and press the 'W' key."
-                    , [ overviewEntryToOrbit.uiNode |> clickOnUIElement MouseButtonLeft
-                      , VolatileHostInterface.KeyDown keyCodeLetterW
-                      , VolatileHostInterface.KeyUp keyCodeLetterW
+                    ( "Press the 'W' key and click on the overview entry."
+                    , [ [ EffectOnWindow.KeyDown EffectOnWindow.vkey_W ]
+                      , overviewEntryToOrbit.uiNode |> clickOnUIElement MouseButtonLeft
+                      , [ EffectOnWindow.KeyUp EffectOnWindow.vkey_W ]
                       ]
+                        |> List.concat
                     )
                 )
             )
 
 
-keyCodeLetterW : Common.EffectOnWindow.VirtualKeyCode
-keyCodeLetterW =
-    Common.EffectOnWindow.VirtualKeyCodeFromInt 0x57
-
-
 launchAndEngageDrones : ReadingFromGameClient -> Maybe DecisionPathNode
 launchAndEngageDrones readingFromGameClient =
     readingFromGameClient.dronesWindow
-        |> maybeNothingFromCanNotSeeIt
         |> Maybe.andThen
             (\dronesWindow ->
                 case ( dronesWindow.droneGroupInBay, dronesWindow.droneGroupInLocalSpace ) of
@@ -400,7 +584,6 @@ launchAndEngageDrones readingFromGameClient =
 returnDronesToBay : ReadingFromGameClient -> Maybe DecisionPathNode
 returnDronesToBay parsedUserInterface =
     parsedUserInterface.dronesWindow
-        |> maybeNothingFromCanNotSeeIt
         |> Maybe.andThen .droneGroupInLocalSpace
         |> Maybe.andThen
             (\droneGroupInLocalSpace ->
@@ -421,30 +604,15 @@ returnDronesToBay parsedUserInterface =
 lockTargetFromOverviewEntry : OverviewWindowEntry -> DecisionPathNode
 lockTargetFromOverviewEntry overviewEntry =
     describeBranch ("Lock target from overview entry '" ++ (overviewEntry.objectName |> Maybe.withDefault "") ++ "'")
-        (useContextMenuCascadeOnOverviewEntry overviewEntry
+        (useContextMenuCascadeOnOverviewEntry
             (useMenuEntryWithTextEqual "Lock target" menuCascadeCompleted)
+            overviewEntry
         )
 
 
 readShipUIModuleButtonTooltips : BotDecisionContext -> Maybe DecisionPathNode
-readShipUIModuleButtonTooltips context =
-    context.readingFromGameClient.shipUI
-        |> maybeNothingFromCanNotSeeIt
-        |> Maybe.map .moduleButtons
-        |> Maybe.withDefault []
-        |> List.filter (EveOnline.AppFramework.getModuleButtonTooltipFromModuleButton context.memory.shipModules >> (==) Nothing)
-        |> List.head
-        |> Maybe.map
-            (\moduleButtonWithoutMemoryOfTooltip ->
-                endDecisionPath
-                    (actWithoutFurtherReadings
-                        ( "Read tooltip for module button"
-                        , [ VolatileHostInterface.MouseMoveTo
-                                { location = moduleButtonWithoutMemoryOfTooltip.uiNode.totalDisplayRegion |> centerFromDisplayRegion }
-                          ]
-                        )
-                    )
-            )
+readShipUIModuleButtonTooltips =
+    EveOnline.AppFramework.readShipUIModuleButtonTooltipWhereNotYetInMemory
 
 
 initState : State
@@ -453,6 +621,8 @@ initState =
         (EveOnline.AppFramework.initStateWithMemoryAndDecisionTree
             { lastDockedStationNameFromInfoPanel = Nothing
             , shipModules = EveOnline.AppFramework.initShipModulesMemory
+            , shipWarpingInLastReading = Nothing
+            , visitedAnomalies = Dict.empty
             }
         )
 
@@ -486,36 +656,64 @@ statusTextFromState context =
         readingFromGameClient =
             context.readingFromGameClient
 
+        describePerformance =
+            "Visited anomalies: " ++ (context.memory.visitedAnomalies |> Dict.size |> String.fromInt) ++ "."
+
         combatInfoLines =
             [ "Overview entries to attack: " ++ (readingFromGameClient |> allOverviewEntriesToAttack |> Maybe.map (List.length >> String.fromInt) |> Maybe.withDefault "Nothing") ]
 
         describeShip =
             case readingFromGameClient.shipUI of
-                CanSee shipUI ->
+                Just shipUI ->
                     "Shield HP at " ++ (shipUI.hitpointsPercent.shield |> String.fromInt) ++ "%."
 
-                CanNotSeeIt ->
+                Nothing ->
                     "I do not see the ship UI. Please set up game client first."
 
         describeDrones =
             case readingFromGameClient.dronesWindow of
-                CanNotSeeIt ->
+                Nothing ->
                     "I do not see the drones window."
 
-                CanSee dronesWindow ->
+                Just dronesWindow ->
                     "I see the drones window: In bay: "
                         ++ (dronesWindow.droneGroupInBay |> Maybe.andThen (.header >> .quantityFromTitle) |> Maybe.map String.fromInt |> Maybe.withDefault "Unknown")
                         ++ ", in local space: "
                         ++ (dronesWindow.droneGroupInLocalSpace |> Maybe.andThen (.header >> .quantityFromTitle) |> Maybe.map String.fromInt |> Maybe.withDefault "Unknown")
                         ++ "."
+
+        namesOfOtherPilotsInOverview =
+            getNamesOfOtherPilotsInOverview readingFromGameClient
+
+        describeAnomaly =
+            "Current anomaly: "
+                ++ (getCurrentAnomalyIDAsSeenInProbeScanner readingFromGameClient |> Maybe.withDefault "None")
+                ++ "."
+
+        describeOverview =
+            ("Seeing "
+                ++ (namesOfOtherPilotsInOverview |> List.length |> String.fromInt)
+                ++ " other pilots in the overview"
+            )
+                ++ (if namesOfOtherPilotsInOverview == [] then
+                        ""
+
+                    else
+                        ": " ++ (namesOfOtherPilotsInOverview |> String.join ", ")
+                   )
+                ++ "."
     in
-    [ describeShip ] ++ combatInfoLines ++ [ describeDrones ] |> String.join " "
+    [ [ describePerformance ]
+    , [ describeShip ] ++ combatInfoLines ++ [ describeDrones ]
+    , [ describeAnomaly, describeOverview ]
+    ]
+        |> List.map (String.join " ")
+        |> String.join "\n"
 
 
 allOverviewEntriesToAttack : ReadingFromGameClient -> Maybe (List EveOnline.ParseUserInterface.OverviewWindowEntry)
 allOverviewEntriesToAttack =
     .overviewWindow
-        >> maybeNothingFromCanNotSeeIt
         >> Maybe.map (.entries >> List.filter shouldAttackOverviewEntry)
 
 
@@ -535,6 +733,12 @@ shouldAttackOverviewEntry =
     iconSpriteHasColorOfRat
 
 
+moduleIsActiveOrReloading : EveOnline.ParseUserInterface.ShipUIModuleButton -> Bool
+moduleIsActiveOrReloading moduleButton =
+    (moduleButton.isActive |> Maybe.withDefault False)
+        || ((moduleButton.rampRotationMilli |> Maybe.withDefault 0) /= 0)
+
+
 iconSpriteHasColorOfRat : EveOnline.ParseUserInterface.OverviewWindowEntry -> Bool
 iconSpriteHasColorOfRat =
     .iconSpriteColorPercent
@@ -550,10 +754,45 @@ updateMemoryForNewReadingFromGame currentReading botMemoryBefore =
     let
         currentStationNameFromInfoPanel =
             currentReading.infoPanelContainer
-                |> maybeVisibleAndThen .infoPanelLocationInfo
-                |> maybeVisibleAndThen .expandedContent
-                |> maybeNothingFromCanNotSeeIt
+                |> Maybe.andThen .infoPanelLocationInfo
+                |> Maybe.andThen .expandedContent
                 |> Maybe.andThen .currentStationName
+
+        shipIsWarping =
+            currentReading.shipUI
+                |> Maybe.andThen .indication
+                |> Maybe.andThen .maneuverType
+                |> Maybe.map ((==) EveOnline.ParseUserInterface.ManeuverWarp)
+
+        weJustArrivedOnGrid =
+            (botMemoryBefore.shipWarpingInLastReading == Just True) && (shipIsWarping == Just False)
+
+        visitedAnomalies =
+            if shipIsWarping == Just True then
+                botMemoryBefore.visitedAnomalies
+
+            else
+                case currentReading |> getCurrentAnomalyIDAsSeenInProbeScanner of
+                    Nothing ->
+                        botMemoryBefore.visitedAnomalies
+
+                    Just currentAnomalyID ->
+                        let
+                            anomalyMemoryBefore =
+                                botMemoryBefore.visitedAnomalies
+                                    |> Dict.get currentAnomalyID
+                                    |> Maybe.withDefault { otherPilotsFoundOnArrival = [] }
+
+                            anomalyMemory =
+                                if weJustArrivedOnGrid then
+                                    { anomalyMemoryBefore
+                                        | otherPilotsFoundOnArrival = getNamesOfOtherPilotsInOverview currentReading
+                                    }
+
+                                else
+                                    anomalyMemoryBefore
+                        in
+                        botMemoryBefore.visitedAnomalies |> Dict.insert currentAnomalyID anomalyMemory
     in
     { lastDockedStationNameFromInfoPanel =
         [ currentStationNameFromInfoPanel, botMemoryBefore.lastDockedStationNameFromInfoPanel ]
@@ -562,7 +801,53 @@ updateMemoryForNewReadingFromGame currentReading botMemoryBefore =
     , shipModules =
         botMemoryBefore.shipModules
             |> EveOnline.AppFramework.integrateCurrentReadingsIntoShipModulesMemory currentReading
+    , shipWarpingInLastReading = shipIsWarping
+    , visitedAnomalies = visitedAnomalies
     }
+
+
+getCurrentAnomalyIDAsSeenInProbeScanner : ReadingFromGameClient -> Maybe String
+getCurrentAnomalyIDAsSeenInProbeScanner =
+    .probeScannerWindow
+        >> Maybe.map getScanResultsForSitesOnGrid
+        >> Maybe.withDefault []
+        >> List.head
+        >> Maybe.andThen (.cellsTexts >> Dict.get "ID")
+
+
+getScanResultsForSitesOnGrid : EveOnline.ParseUserInterface.ProbeScannerWindow -> List EveOnline.ParseUserInterface.ProbeScanResult
+getScanResultsForSitesOnGrid probeScannerWindow =
+    probeScannerWindow.scanResults
+        |> List.filter (scanResultLooksLikeItIsOnGrid >> Maybe.withDefault False)
+
+
+scanResultLooksLikeItIsOnGrid : EveOnline.ParseUserInterface.ProbeScanResult -> Maybe Bool
+scanResultLooksLikeItIsOnGrid =
+    .cellsTexts
+        >> Dict.get "Distance"
+        >> Maybe.map (\text -> (text |> String.contains " m") || (text |> String.contains " km"))
+
+
+getNamesOfOtherPilotsInOverview : ReadingFromGameClient -> List String
+getNamesOfOtherPilotsInOverview readingFromGameClient =
+    let
+        pilotNamesFromLocalChat =
+            readingFromGameClient
+                |> localChatWindowFromUserInterface
+                |> Maybe.andThen .userlist
+                |> Maybe.map .visibleUsers
+                |> Maybe.withDefault []
+                |> List.filterMap .name
+
+        overviewEntryRepresentsOtherPilot overviewEntry =
+            (overviewEntry.objectName |> Maybe.map (\objectName -> pilotNamesFromLocalChat |> List.member objectName))
+                |> Maybe.withDefault False
+    in
+    readingFromGameClient.overviewWindow
+        |> Maybe.map .entries
+        |> Maybe.withDefault []
+        |> List.filter overviewEntryRepresentsOtherPilot
+        |> List.map (.objectName >> Maybe.withDefault "do not see name of overview entry")
 
 
 shipUIModulesToActivateOnTarget : SeeUndockingComplete -> List ShipUIModuleButton
@@ -575,15 +860,10 @@ shipUIModulesToActivateAlways =
     .shipUI >> .moduleButtonsRows >> .middle
 
 
-isShipWarpingOrJumping : EveOnline.ParseUserInterface.ShipUI -> Bool
-isShipWarpingOrJumping =
-    .indication
-        >> maybeNothingFromCanNotSeeIt
-        >> Maybe.andThen (.maneuverType >> maybeNothingFromCanNotSeeIt)
-        >> Maybe.map
-            (\maneuverType ->
-                [ EveOnline.ParseUserInterface.ManeuverWarp, EveOnline.ParseUserInterface.ManeuverJump ]
-                    |> List.member maneuverType
-            )
-        -- If the ship is just floating in space, there might be no indication displayed.
-        >> Maybe.withDefault False
+nothingFromIntIfGreaterThan : Int -> Int -> Maybe Int
+nothingFromIntIfGreaterThan limit originalInt =
+    if limit < originalInt then
+        Nothing
+
+    else
+        Just originalInt

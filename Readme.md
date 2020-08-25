@@ -12,7 +12,6 @@ This bot uses the probe scanner to warp to combat anomalies and kills rats using
 Despite being quite robust, this bot is far from being as smart as a human. For example, its perception is more limited than ours, so we need to set up the game to make sure that the bot can see everything it needs to. Following is the list of setup instructions for the EVE Online client:
 
 + Set the UI language to English.
-+ Enable the info panel 'System info'.
 + Undock, open probe scanner, overview window and drones window.
 + Set the Overview window to sort objects in space by distance with the nearest entry at the top.
 + In the ship UI, arrange the modules:
@@ -23,7 +22,7 @@ Despite being quite robust, this bot is far from being as smart as a human. For 
 
 ## Starting the Bot
 
-To start the bot, download the script from https://catalog.botengine.org/c3bd07cc47c848ed546bba39f757a58f64c11d0971704d48d1e96d4284d3263e and then run it.
+To start the bot, download the script from https://catalog.botengine.org/0eac4011309d710f71b1e69c8a9878a331c04b338140a38aee8f0b88e0310a00 and then run it.
 
 In case the botengine program is not yet installed on your system, the script will redirect you to the installation guide at https://to.botengine.org/failed-run-did-not-find-botengine-program
 
@@ -34,6 +33,22 @@ The bot needs a few seconds to start and find the EVE Online client process. It 
 ![EVE Online App Starting](./guide/image/2019-10-08.eve-online-autopilot-bot-startup.png)
 
 From here on, the bot works automatically. It detects the topmost game client window and starts working in that game client.
+
+## Configuration Settings
+
+All settings are optional; you only need them in case the defaults don't fit your use-case.
+
++ `anomaly-name` : Choose the name of anomalies to take. You can use this setting multiple times to select multiple names.
++ `hide-when-neutral-in-local` : Set this to 'yes' to make the bot dock in a station or structure when a neutral or hostile appears in the 'local' chat.
+
+When using more than one setting, start a new line for each setting in the text input field.
+Here is an example of a complete settings string:
+
+```
+anomaly-name = Drone Patrol
+anomaly-name = Drone Horde
+hide-when-neutral-in-local = yes
+```
 
 ----
 
